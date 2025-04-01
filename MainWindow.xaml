@@ -1,0 +1,39 @@
+﻿<Window x:Class="ThreadPilot.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:ThreadPilot"
+        xmlns:views="clr-namespace:ThreadPilot.Views"
+        xmlns:viewModels="clr-namespace:ThreadPilot.ViewModels"
+        mc:Ignorable="d"
+        Title="ThreadPilot - Process &amp; Power Plan Manager" 
+        Height="720" 
+        Width="1280"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <local:MainWindowViewModel/>
+    </Window.DataContext>
+    
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <TabControl Grid.Row="1" Margin="10">
+            <TabItem Header="Process Management">
+                <views:ProcessView/>
+            </TabItem>
+            <TabItem Header="Power Plans">
+                <views:PowerPlanView/>
+            </TabItem>
+        </TabControl>
+
+        <StatusBar Grid.Row="2" Height="25">
+            <TextBlock Text="{Binding StatusMessage}"/>
+        </StatusBar>
+    </Grid>
+</Window>

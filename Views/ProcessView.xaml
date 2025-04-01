@@ -1,0 +1,147 @@
+<UserControl x:Class="ThreadPilot.Views.ProcessView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ThreadPilot.Views"
+             xmlns:helpers="clr-namespace:ThreadPilot.Helpers"
+             mc:Ignorable="d" 
+             d:DesignHeight="650" d:DesignWidth="1200">
+    
+    <Grid Margin="10">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Search and Refresh Controls -->
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox Width="200" 
+                     Margin="0,0,10,0"
+                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
+            <Button Command="{Binding LoadProcessesCommand}"
+                    Content="Refresh"
+                    Padding="10,5"/>
+        </StackPanel>
+
+        <!-- Process List -->
+        <DataGrid Grid.Row="1" 
+                  ItemsSource="{Binding FilteredProcesses}"
+                  SelectedItem="{Binding SelectedProcess}"
+                  AutoGenerateColumns="False"
+                  IsReadOnly="True"
+                  SelectionMode="Single"
+                  GridLinesVisibility="Horizontal"
+                  HeadersVisibility="Column"
+                  CanUserResizeColumns="True"
+                  CanUserSortColumns="True"
+                  Margin="0,0,0,10">
+            <DataGrid.Columns>
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200"/>
+                <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="80"/>
+                <DataGridTextColumn Header="CPU Usage" Binding="{Binding CpuUsage, StringFormat={}{0:N1}%}" Width="100"/>
+                <DataGridTextColumn Header="Memory (MB)" 
+                                  Binding="{Binding MemoryUsage, Converter={StaticResource BytesToMbConverter}}" 
+                                  Width="100"/>
+                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="100"/>
+                <DataGridTextColumn Header="Affinity" 
+                                  Binding="{Binding ProcessorAffinity, Converter={StaticResource AffinityMaskConverter}}" 
+                                  Width="*"/>
+            </DataGrid.Columns>
+        </DataGrid>
+
+        <!-- Process Controls -->
+        <Grid Grid.Row="2">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+                
+            <Grid Grid.Row="0">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+
+                <!-- Priority Controls -->
+                <GroupBox Grid.Column="0" Header="Process Priority" Margin="0,0,5,0">
+                    <StackPanel Margin="5">
+                        <ComboBox SelectedItem="{Binding SelectedProcess.Priority}"
+                                Margin="0,0,0,5">
+                            <ComboBoxItem Content="Realtime"/>
+                            <ComboBoxItem Content="High"/>
+                            <ComboBoxItem Content="Above Normal"/>
+                            <ComboBoxItem Content="Normal"/>
+                            <ComboBoxItem Content="Below Normal"/>
+                            <ComboBoxItem Content="Idle"/>
+                        </ComboBox>
+                        <Button Command="{Binding SetPriorityCommand}"
+                                CommandParameter="{Binding SelectedProcess.Priority}"
+                                Content="Set Priority"
+                                Padding="10,5"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Affinity Controls -->
+                <GroupBox Grid.Column="1" Header="CPU Affinity" Margin="5,0,0,0">
+                    <Grid Margin="5">
+                        <Grid.RowDefinitions>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                        </Grid.RowDefinitions>
+
+                        <WrapPanel x:Name="CpuAffinityPanel" Grid.Row="0">
+                            <CheckBox Content="CPU 0" Tag="1" Margin="5" IsChecked="{Binding IsCpu0Selected}"/>
+                            <CheckBox Content="CPU 1" Tag="2" Margin="5" IsChecked="{Binding IsCpu1Selected}"/>
+                            <CheckBox Content="CPU 2" Tag="4" Margin="5" IsChecked="{Binding IsCpu2Selected}"/>
+                            <CheckBox Content="CPU 3" Tag="8" Margin="5" IsChecked="{Binding IsCpu3Selected}"/>
+                            <CheckBox Content="CPU 4" Tag="16" Margin="5" IsChecked="{Binding IsCpu4Selected}"/>
+                            <CheckBox Content="CPU 5" Tag="32" Margin="5" IsChecked="{Binding IsCpu5Selected}"/>
+                            <CheckBox Content="CPU 6" Tag="64" Margin="5" IsChecked="{Binding IsCpu6Selected}"/>
+                            <CheckBox Content="CPU 7" Tag="128" Margin="5" IsChecked="{Binding IsCpu7Selected}"/>
+                            <CheckBox Content="CPU 8" Tag="256" Margin="5" IsChecked="{Binding IsCpu8Selected}"/>
+                            <CheckBox Content="CPU 9" Tag="512" Margin="5" IsChecked="{Binding IsCpu9Selected}"/>
+                            <CheckBox Content="CPU 10" Tag="1024" Margin="5" IsChecked="{Binding IsCpu10Selected}"/>
+                            <CheckBox Content="CPU 11" Tag="2048" Margin="5" IsChecked="{Binding IsCpu11Selected}"/>
+                            <CheckBox Content="CPU 12" Tag="4096" Margin="5" IsChecked="{Binding IsCpu12Selected}"/>
+                            <CheckBox Content="CPU 13" Tag="8192" Margin="5" IsChecked="{Binding IsCpu13Selected}"/>
+                            <CheckBox Content="CPU 14" Tag="16384" Margin="5" IsChecked="{Binding IsCpu14Selected}"/>
+                            <CheckBox Content="CPU 15" Tag="32768" Margin="5" IsChecked="{Binding IsCpu15Selected}"/>
+                        </WrapPanel>
+
+                        <Button Grid.Row="1" 
+                                Command="{Binding SetAffinityCommand}"
+                                Content="Set Affinity"
+                                Margin="0,5,0,0"
+                                Padding="10,5"/>
+                    </Grid>
+                </GroupBox>
+            </Grid>
+
+            <!-- Profile Management -->
+            <GroupBox Grid.Row="1" Header="Profile Management" Margin="0,10,0,0">
+                <Grid Margin="5">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+
+                    <TextBox Grid.Column="0" 
+                            Text="{Binding ProfileName, UpdateSourceTrigger=PropertyChanged}"
+                            Margin="0,0,10,0"/>
+                    <Button Grid.Column="1" 
+                            Command="{Binding SaveProfileCommand}"
+                            Content="Save Profile"
+                            Padding="10,5"
+                            Margin="0,0,5,0"/>
+                    <Button Grid.Column="2" 
+                            Command="{Binding LoadProfileCommand}"
+                            Content="Load Profile"
+                            Padding="10,5"/>
+                </Grid>
+            </GroupBox>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -1,0 +1,13 @@
+﻿<Application x:Class="ThreadPilot.App"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:local="clr-namespace:ThreadPilot"
+             xmlns:helpers="clr-namespace:ThreadPilot.Helpers">
+    <Application.Resources>
+        <ResourceDictionary>
+            <helpers:BytesToMbConverter x:Key="BytesToMbConverter"/>
+            <helpers:AffinityMaskConverter x:Key="AffinityMaskConverter"/>
+            <helpers:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter"/>
+        </ResourceDictionary>
+    </Application.Resources>
+</Application>
