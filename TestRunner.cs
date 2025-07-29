@@ -20,6 +20,12 @@ namespace ThreadPilot
             try
             {
                 await CpuTopologyServiceTests.TestCpuTopologyDetection();
+
+                Console.WriteLine();
+
+                // Run Process Selection Test
+                var processSelectionTest = new ProcessSelectionTest();
+                await processSelectionTest.RunAllTests();
             }
             catch (Exception ex)
             {

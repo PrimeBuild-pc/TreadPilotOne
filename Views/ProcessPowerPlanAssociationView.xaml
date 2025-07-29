@@ -10,6 +10,7 @@
 
     <UserControl.Resources>
         <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
         <converters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
     </UserControl.Resources>
     <Grid>
@@ -96,15 +97,36 @@
                     <!-- Add New Association -->
                     <GroupBox Grid.Column="2" Header="Add New Association">
                         <StackPanel>
-                            <TextBlock Text="Executable Name:" Margin="0,0,0,5"/>
-                            <TextBox Text="{Binding NewExecutableName}"
-                                    Padding="5" Margin="0,0,0,10"
-                                    ToolTip="Enter the executable name (e.g., game.exe)"/>
+                            <!-- Executable Selection Section -->
+                            <TextBlock Text="Select Executable:" FontWeight="Bold" Margin="0,0,0,5"/>
 
-                            <TextBlock Text="Executable Path (optional):" Margin="0,0,0,5"/>
-                            <TextBox Text="{Binding NewExecutablePath}"
-                                    Padding="5" Margin="0,0,0,10"
-                                    ToolTip="Enter the full path to the executable (optional)"/>
+                            <!-- Browse Button -->
+                            <Button Content="📁 Browse for Executable"
+                                   Command="{Binding BrowseExecutableCommand}"
+                                   Padding="10,8" Margin="0,0,0,10"
+                                   HorizontalAlignment="Left"
+                                   ToolTip="Click to select an executable file (.exe) from your computer"/>
+
+                            <!-- Selected Executable Display -->
+                            <Border BorderBrush="#CCCCCC" BorderThickness="1"
+                                   Background="#F8F8F8" Padding="8" Margin="0,0,0,10"
+                                   Visibility="{Binding HasSelectedExecutable, Converter={StaticResource BoolToVisibilityConverter}}">
+                                <StackPanel>
+                                    <TextBlock Text="Selected Executable:" FontSize="10" Foreground="#666666" Margin="0,0,0,2"/>
+                                    <TextBlock Text="{Binding SelectedExecutableDisplayName}"
+                                              FontWeight="Bold" Margin="0,0,0,2"/>
+                                    <TextBlock Text="{Binding SelectedExecutableFullPath}"
+                                              FontSize="10" Foreground="#666666" TextWrapping="Wrap"/>
+                                </StackPanel>
+                            </Border>
+
+                            <!-- Clear Selection Button -->
+                            <Button Content="✖ Clear Selection"
+                                   Command="{Binding ClearSelectedExecutableCommand}"
+                                   Padding="5,3" Margin="0,0,0,15"
+                                   HorizontalAlignment="Left" FontSize="10"
+                                   Visibility="{Binding HasSelectedExecutable, Converter={StaticResource BoolToVisibilityConverter}}"
+                                   ToolTip="Clear the selected executable"/>
 
                             <CheckBox Content="Match by Path"
                                      IsChecked="{Binding MatchByPath}"
@@ -131,17 +153,19 @@
 
                             <Separator Margin="0,15,0,15"/>
 
-                            <TextBlock Text="Quick Add from Running Processes:"
+                            <TextBlock Text="Or Select from Running Processes:"
                                       FontWeight="Bold" Margin="0,0,0,10"/>
 
                             <ComboBox ItemsSource="{Binding RunningProcesses}"
                                      SelectedItem="{Binding SelectedProcess}"
                                      DisplayMemberPath="Name"
-                                     Padding="5" Margin="0,0,0,10"/>
+                                     Padding="5" Margin="0,0,0,10"
+                                     ToolTip="Select a currently running process to use its executable"/>
 
-                            <Button Content="Use Selected Process"
+                            <Button Content="📋 Use Selected Process"
                                    Command="{Binding UseSelectedProcessForAssociationCommand}"
-                                   Padding="10,5"/>
+                                   Padding="10,5"
+                                   ToolTip="Use the executable from the selected running process"/>
                         </StackPanel>
                     </GroupBox>
                 </Grid>

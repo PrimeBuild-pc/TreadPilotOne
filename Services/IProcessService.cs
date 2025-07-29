@@ -36,8 +36,18 @@ namespace ThreadPilot.Services
         Task<IEnumerable<ProcessModel>> GetProcessesWithPathsAsync();
 
         /// <summary>
+        /// Gets only active applications with visible windows (user-facing applications)
+        /// </summary>
+        Task<ObservableCollection<ProcessModel>> GetActiveApplicationsAsync();
+
+        /// <summary>
         /// Creates a ProcessModel from a System.Diagnostics.Process
         /// </summary>
         ProcessModel CreateProcessModel(Process process);
+
+        /// <summary>
+        /// Checks if a specific process is still running
+        /// </summary>
+        Task<bool> IsProcessStillRunning(ProcessModel process);
     }
 }

@@ -1,13 +1,14 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
+using CommunityToolkit.Mvvm.ComponentModel;
 
 namespace ThreadPilot.Models
 {
     /// <summary>
     /// Represents a logical CPU core with topology information
     /// </summary>
-    public class CpuCoreModel
+    public partial class CpuCoreModel : ObservableObject
     {
         public int LogicalCoreId { get; set; }
         public int PhysicalCoreId { get; set; }
@@ -18,9 +19,13 @@ namespace ThreadPilot.Models
         public bool IsHyperThreaded { get; set; }
         public int? HyperThreadSibling { get; set; }
         public string Label { get; set; } = string.Empty;
-        public bool IsEnabled { get; set; } = true;
-        public bool IsSelected { get; set; } = false;
-        
+
+        [ObservableProperty]
+        private bool isEnabled = true;
+
+        [ObservableProperty]
+        private bool isSelected = false;
+
         /// <summary>
         /// Gets the affinity mask bit for this logical core
         /// </summary>

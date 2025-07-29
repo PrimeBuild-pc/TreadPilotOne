@@ -46,6 +46,11 @@ namespace ThreadPilot.Services
                 model.Priority = process.PriorityClass;
                 model.ProcessorAffinity = (long)process.ProcessorAffinity;
 
+                // Capture window information
+                model.MainWindowHandle = process.MainWindowHandle;
+                model.MainWindowTitle = process.MainWindowTitle ?? string.Empty;
+                model.HasVisibleWindow = model.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(model.MainWindowTitle);
+
                 // Try to get executable path
                 try
                 {
@@ -145,13 +150,31 @@ namespace ThreadPilot.Services
                 try
                 {
                     var p = Process.GetProcessById(process.ProcessId);
+
+                    // Check if process has exited
+                    if (p.HasExited)
+                    {
+                        throw new InvalidOperationException("Process has exited");
+                    }
+
                     process.MemoryUsage = p.WorkingSet64;
                     process.Priority = p.PriorityClass;
                     process.ProcessorAffinity = (long)p.ProcessorAffinity;
+
+                    // Update window information
+                    process.MainWindowHandle = p.MainWindowHandle;
+                    process.MainWindowTitle = p.MainWindowTitle ?? string.Empty;
+                    process.HasVisibleWindow = process.MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(process.MainWindowTitle);
                 }
-                catch (Exception)
+                catch (ArgumentException)
                 {
-                    // Process may have ended
+                    // Process with the specified ID does not exist
+                    throw new InvalidOperationException("Process no longer exists");
+                }
+                catch (Exception ex) when (ex.Message.Contains("exited") || ex.Message.Contains("terminated"))
+                {
+                    // Process has terminated
+                    throw new InvalidOperationException("Process has terminated");
                 }
             });
         }
@@ -207,6 +230,41 @@ namespace ThreadPilot.Services
                     .OrderBy(p => p.Name);
 
                 return processes;
+            });
+        }
+
+        public async Task<ObservableCollection<ProcessModel>> GetActiveApplicationsAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var processes = Process.GetProcesses()
+                    .Select(CreateProcessModel)
+                    .Where(p => p != null && p.HasVisibleWindow)
+                    .OrderBy(p => p.Name);
+
+                return new ObservableCollection<ProcessModel>(processes);
+            });
+        }
+
+        public async Task<bool> IsProcessStillRunning(ProcessModel process)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var p = Process.GetProcessById(process.ProcessId);
+                    return !p.HasExited;
+                }
+                catch (ArgumentException)
+                {
+                    // Process with the specified ID does not exist
+                    return false;
+                }
+                catch
+                {
+                    // Any other exception means process is not accessible/running
+                    return false;
+                }
             });
         }
     }

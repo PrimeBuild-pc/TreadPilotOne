@@ -6,6 +6,7 @@
              xmlns:local="clr-namespace:ThreadPilot.Views"
              xmlns:helpers="clr-namespace:ThreadPilot.Helpers"
              xmlns:converters="clr-namespace:ThreadPilot.Converters"
+             xmlns:Diagnostics="clr-namespace:System.Diagnostics;assembly=System.Diagnostics.Process"
              mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1200">
 
@@ -32,6 +33,11 @@
                          Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
                          ToolTip="Search processes by name"
                          VerticalAlignment="Center"/>
+                <CheckBox Content="Active Applications Only"
+                          IsChecked="{Binding ShowActiveApplicationsOnly}"
+                          Margin="0,0,10,0"
+                          VerticalAlignment="Center"
+                          ToolTip="Show only applications with visible windows (like Process Lasso's Active Processes)"/>
                 <Button Command="{Binding LoadProcessesCommand}"
                         Content="🔄 Refresh"
                         Padding="10,5"
@@ -52,15 +58,17 @@
                   CanUserSortColumns="True"
                   Margin="0,0,0,10">
             <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="200"/>
-                <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="80"/>
-                <DataGridTextColumn Header="CPU Usage" Binding="{Binding CpuUsage, StringFormat={}{0:N1}%}" Width="100"/>
-                <DataGridTextColumn Header="Memory (MB)" 
-                                  Binding="{Binding MemoryUsage, Converter={StaticResource BytesToMbConverter}}" 
-                                  Width="100"/>
-                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="100"/>
-                <DataGridTextColumn Header="Affinity" 
-                                  Binding="{Binding ProcessorAffinity, Converter={StaticResource AffinityMaskConverter}}" 
+                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+                <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="60"/>
+                <DataGridTextColumn Header="Window Title" Binding="{Binding MainWindowTitle}" Width="200"/>
+                <DataGridCheckBoxColumn Header="Has Window" Binding="{Binding HasVisibleWindow}" Width="80"/>
+                <DataGridTextColumn Header="CPU Usage" Binding="{Binding CpuUsage, StringFormat={}{0:N1}%}" Width="80"/>
+                <DataGridTextColumn Header="Memory (MB)"
+                                  Binding="{Binding MemoryUsage, Converter={StaticResource BytesToMbConverter}}"
+                                  Width="80"/>
+                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
+                <DataGridTextColumn Header="Affinity"
+                                  Binding="{Binding ProcessorAffinity, Converter={StaticResource AffinityMaskConverter}}"
                                   Width="*"/>
             </DataGrid.Columns>
         </DataGrid>
@@ -82,19 +90,23 @@
                 <!-- Priority Controls -->
                 <GroupBox Grid.Column="0" Header="Process Priority" Margin="0,0,5,0">
                     <StackPanel Margin="5">
-                        <ComboBox SelectedItem="{Binding SelectedProcess.Priority}"
-                                Margin="0,0,0,5">
-                            <ComboBoxItem Content="Realtime"/>
-                            <ComboBoxItem Content="High"/>
-                            <ComboBoxItem Content="Above Normal"/>
-                            <ComboBoxItem Content="Normal"/>
-                            <ComboBoxItem Content="Below Normal"/>
-                            <ComboBoxItem Content="Idle"/>
+                        <ComboBox x:Name="PriorityComboBox"
+                                  SelectedValue="{Binding SelectedProcess.Priority, Mode=TwoWay}"
+                                  SelectedValuePath="Tag"
+                                  Margin="0,0,0,5"
+                                  IsEnabled="{Binding SelectedProcess, Converter={StaticResource BoolToVisibilityConverter}}">
+                            <ComboBoxItem Content="Realtime" Tag="{x:Static Diagnostics:ProcessPriorityClass.RealTime}"/>
+                            <ComboBoxItem Content="High" Tag="{x:Static Diagnostics:ProcessPriorityClass.High}"/>
+                            <ComboBoxItem Content="Above Normal" Tag="{x:Static Diagnostics:ProcessPriorityClass.AboveNormal}"/>
+                            <ComboBoxItem Content="Normal" Tag="{x:Static Diagnostics:ProcessPriorityClass.Normal}"/>
+                            <ComboBoxItem Content="Below Normal" Tag="{x:Static Diagnostics:ProcessPriorityClass.BelowNormal}"/>
+                            <ComboBoxItem Content="Idle" Tag="{x:Static Diagnostics:ProcessPriorityClass.Idle}"/>
                         </ComboBox>
                         <Button Command="{Binding SetPriorityCommand}"
-                                CommandParameter="{Binding SelectedProcess.Priority}"
+                                CommandParameter="{Binding ElementName=PriorityComboBox, Path=SelectedValue}"
                                 Content="Set Priority"
                                 Padding="10,5"
+                                IsEnabled="{Binding SelectedProcess, Converter={StaticResource BoolToVisibilityConverter}}"
                                 ToolTip="Apply the selected priority to the process"/>
                     </StackPanel>
                 </GroupBox>
@@ -124,17 +136,16 @@
                             <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <!-- Topology Status and HyperThreading Control -->
+                        <!-- Topology Status and HyperThreading Status -->
                         <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,5">
                             <TextBlock Text="{Binding TopologyStatus}"
                                        FontSize="10"
                                        Foreground="{Binding IsTopologyDetectionSuccessful, Converter={StaticResource BoolToColorConverter}}"/>
-                            <CheckBox Content="Enable HyperThreading"
-                                      IsChecked="{Binding EnableHyperThreading}"
-                                      IsEnabled="{Binding CpuTopology.HasHyperThreading}"
-                                      FontSize="10"
-                                      Margin="0,2,0,0"
-                                      ToolTip="Include HyperThreading siblings in affinity calculations"/>
+                            <TextBlock Text="{Binding HyperThreadingStatusText}"
+                                       FontSize="10"
+                                       Margin="0,2,0,0"
+                                       Foreground="{Binding IsHyperThreadingActive, Converter={StaticResource BoolToColorConverter}}"
+                                       ToolTip="Shows whether Hyper-Threading (Intel) or SMT (AMD) is present and active on this system"/>
                         </StackPanel>
 
                         <!-- Quick Selection Presets -->

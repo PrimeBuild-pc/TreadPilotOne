@@ -23,6 +23,9 @@ namespace ThreadPilot.Models
                         Priority = value.PriorityClass;
                         MemoryUsage = value.WorkingSet64;
                         ExecutablePath = value.MainModule?.FileName ?? string.Empty;
+                        MainWindowHandle = value.MainWindowHandle;
+                        MainWindowTitle = value.MainWindowTitle ?? string.Empty;
+                        HasVisibleWindow = MainWindowHandle != IntPtr.Zero && !string.IsNullOrWhiteSpace(MainWindowTitle);
                     }
                     catch (Exception)
                     {
@@ -52,5 +55,14 @@ namespace ThreadPilot.Models
 
         [ObservableProperty]
         private long processorAffinity;
+
+        [ObservableProperty]
+        private IntPtr mainWindowHandle;
+
+        [ObservableProperty]
+        private string mainWindowTitle = string.Empty;
+
+        [ObservableProperty]
+        private bool hasVisibleWindow;
     }
 }

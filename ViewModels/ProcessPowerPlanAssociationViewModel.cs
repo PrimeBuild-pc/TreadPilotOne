@@ -1,11 +1,13 @@
 using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using Microsoft.Extensions.Logging;
+using Microsoft.Win32;
 using ThreadPilot.Models;
 using ThreadPilot.Services;
 using ThreadPilot.ViewModels;
@@ -42,6 +44,16 @@ namespace ThreadPilot.ViewModels
 
         [ObservableProperty]
         private string newExecutablePath = string.Empty;
+
+        // Properties for the selected executable (read-only display)
+        [ObservableProperty]
+        private string selectedExecutableDisplayName = "No executable selected";
+
+        [ObservableProperty]
+        private string selectedExecutableFullPath = string.Empty;
+
+        [ObservableProperty]
+        private bool hasSelectedExecutable = false;
 
         [ObservableProperty]
         private bool matchByPath = false;
@@ -154,7 +166,7 @@ namespace ThreadPilot.ViewModels
             {
                 if (string.IsNullOrWhiteSpace(NewExecutableName) || SelectedPowerPlan == null)
                 {
-                    SetStatus("Please enter an executable name and select a power plan", false);
+                    SetStatus("Please select an executable and a power plan", false);
                     return;
                 }
 
@@ -352,7 +364,66 @@ namespace ThreadPilot.ViewModels
             {
                 NewExecutableName = SelectedProcess.Name;
                 NewExecutablePath = SelectedProcess.ExecutablePath;
+
+                // Update the selected executable display
+                UpdateSelectedExecutableDisplay(SelectedProcess.ExecutablePath, SelectedProcess.Name);
             }
+        }
+
+        [RelayCommand]
+        public void BrowseExecutable()
+        {
+            try
+            {
+                var openFileDialog = new Microsoft.Win32.OpenFileDialog
+                {
+                    Title = "Select Executable File",
+                    Filter = "Executable Files (*.exe)|*.exe|All Files (*.*)|*.*",
+                    FilterIndex = 1,
+                    CheckFileExists = true,
+                    CheckPathExists = true,
+                    Multiselect = false
+                };
+
+                if (openFileDialog.ShowDialog() == true)
+                {
+                    var selectedFilePath = openFileDialog.FileName;
+
+                    // Validate that it's an executable file
+                    if (!IsValidExecutable(selectedFilePath))
+                    {
+                        SetStatus("Selected file is not a valid executable", false);
+                        return;
+                    }
+
+                    // Extract executable name from the full path
+                    var executableName = Path.GetFileName(selectedFilePath);
+
+                    // Auto-populate the fields
+                    NewExecutableName = executableName;
+                    NewExecutablePath = selectedFilePath;
+
+                    // Update the display
+                    UpdateSelectedExecutableDisplay(selectedFilePath, executableName);
+
+                    SetStatus($"Selected executable: {executableName}");
+                }
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error selecting executable: {ex.Message}", false);
+            }
+        }
+
+        [RelayCommand]
+        public void ClearSelectedExecutable()
+        {
+            NewExecutableName = string.Empty;
+            NewExecutablePath = string.Empty;
+            SelectedExecutableDisplayName = "No executable selected";
+            SelectedExecutableFullPath = string.Empty;
+            HasSelectedExecutable = false;
+            SetStatus("Executable selection cleared");
         }
 
         private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
@@ -365,6 +436,38 @@ namespace ThreadPilot.ViewModels
         {
             ServiceStatus = e.Status;
             IsServiceRunning = e.IsRunning;
+        }
+
+        private bool IsValidExecutable(string filePath)
+        {
+            try
+            {
+                if (string.IsNullOrWhiteSpace(filePath) || !File.Exists(filePath))
+                    return false;
+
+                var extension = Path.GetExtension(filePath);
+                return string.Equals(extension, ".exe", StringComparison.OrdinalIgnoreCase);
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        private void UpdateSelectedExecutableDisplay(string fullPath, string executableName)
+        {
+            if (string.IsNullOrWhiteSpace(fullPath))
+            {
+                SelectedExecutableDisplayName = "No executable selected";
+                SelectedExecutableFullPath = string.Empty;
+                HasSelectedExecutable = false;
+            }
+            else
+            {
+                SelectedExecutableDisplayName = executableName;
+                SelectedExecutableFullPath = fullPath;
+                HasSelectedExecutable = true;
+            }
         }
 
         private void OnProcessPowerPlanChanged(object? sender, ProcessPowerPlanChangeEventArgs e)
