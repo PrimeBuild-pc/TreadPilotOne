@@ -1,4 +1,5 @@
 using System;
+using System.Diagnostics;
 using System.IO;
 using System.Threading.Tasks;
 using Microsoft.Extensions.Logging;
@@ -13,8 +14,10 @@ namespace ThreadPilot.Services
     {
         private const string REGISTRY_KEY_PATH = @"SOFTWARE\Microsoft\Windows\CurrentVersion\Run";
         private const string APPLICATION_NAME = "ThreadPilot";
-        
+        private const string SCHEDULED_TASK_NAME = "ThreadPilot_Startup";
+
         private readonly ILogger<AutostartService> _logger;
+        private readonly IElevationService _elevationService;
         private bool _isAutostartEnabled;
         private string? _autostartPath;
 
@@ -23,10 +26,11 @@ namespace ThreadPilot.Services
         public bool IsAutostartEnabled => _isAutostartEnabled;
         public string? AutostartPath => _autostartPath;
 
-        public AutostartService(ILogger<AutostartService> logger)
+        public AutostartService(ILogger<AutostartService> logger, IElevationService elevationService)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
-            
+            _elevationService = elevationService ?? throw new ArgumentNullException(nameof(elevationService));
+
             // Initialize current status
             _ = Task.Run(CheckAutostartStatusAsync);
         }
@@ -53,12 +57,18 @@ namespace ThreadPilot.Services
                 }
 
                 key.SetValue(APPLICATION_NAME, fullCommand, RegistryValueKind.String);
-                
+
+                // For elevated apps, also create a scheduled task as backup
+                if (_elevationService.IsRunningAsAdministrator())
+                {
+                    await CreateElevatedStartupTask(executablePath, arguments);
+                }
+
                 _isAutostartEnabled = true;
                 _autostartPath = fullCommand;
 
                 _logger.LogInformation("Autostart enabled: {Command}", fullCommand);
-                
+
                 AutostartStatusChanged?.Invoke(this, new AutostartStatusChangedEventArgs(
                     true, startMinimized, fullCommand));
 
@@ -91,6 +101,9 @@ namespace ThreadPilot.Services
                     key.DeleteValue(APPLICATION_NAME, false);
                     _logger.LogInformation("Autostart disabled");
                 }
+
+                // Also remove the scheduled task if it exists
+                await RemoveElevatedStartupTask();
 
                 _isAutostartEnabled = false;
                 _autostartPath = null;
@@ -196,6 +209,88 @@ namespace ThreadPilot.Services
             {
                 _logger.LogError(ex, "Failed to get executable path");
                 return null;
+            }
+        }
+
+        /// <summary>
+        /// Creates a scheduled task for elevated startup as a backup to registry autostart
+        /// </summary>
+        private async Task CreateElevatedStartupTask(string executablePath, string arguments)
+        {
+            try
+            {
+                var taskArguments = $"/Create /TN \"{SCHEDULED_TASK_NAME}\" /TR \"\\\"{executablePath}\\\" {arguments}\" " +
+                                   "/SC ONLOGON /RL HIGHEST /F /RU \"{Environment.UserName}\"";
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "schtasks.exe",
+                    Arguments = taskArguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var process = Process.Start(processInfo);
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    if (process.ExitCode == 0)
+                    {
+                        _logger.LogInformation("Created elevated startup task successfully");
+                    }
+                    else
+                    {
+                        var error = await process.StandardError.ReadToEndAsync();
+                        _logger.LogWarning("Failed to create elevated startup task. Exit code: {ExitCode}, Error: {Error}",
+                            process.ExitCode, error);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to create elevated startup task");
+            }
+        }
+
+        /// <summary>
+        /// Removes the elevated startup scheduled task
+        /// </summary>
+        private async Task RemoveElevatedStartupTask()
+        {
+            try
+            {
+                var taskArguments = $"/Delete /TN \"{SCHEDULED_TASK_NAME}\" /F";
+
+                var processInfo = new ProcessStartInfo
+                {
+                    FileName = "schtasks.exe",
+                    Arguments = taskArguments,
+                    UseShellExecute = false,
+                    CreateNoWindow = true,
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true
+                };
+
+                using var process = Process.Start(processInfo);
+                if (process != null)
+                {
+                    await process.WaitForExitAsync();
+                    if (process.ExitCode == 0)
+                    {
+                        _logger.LogInformation("Removed elevated startup task successfully");
+                    }
+                    else
+                    {
+                        // Task might not exist, which is fine
+                        _logger.LogDebug("Scheduled task removal completed with exit code: {ExitCode}", process.ExitCode);
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to remove elevated startup task");
             }
         }
     }

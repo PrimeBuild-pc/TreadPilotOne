@@ -1,0 +1,7 @@
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\ThreadPilot.pdb
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\D3DCompiler_47_cor3.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\PenImc_cor3.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\PresentationNative_cor3.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\vcruntime140_cor3.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\wpfgfx_cor3.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\publish\ThreadPilot.exe

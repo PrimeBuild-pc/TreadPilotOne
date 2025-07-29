@@ -54,3 +54,12 @@ C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\refint
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\ThreadPilot.pdb
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\ThreadPilot.genruntimeconfig.cache
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\ref\ThreadPilot.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\System.Diagnostics.EventLog.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\System.ServiceProcess.ServiceController.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.Messages.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\runtimes\win\lib\net8.0\System.Diagnostics.EventLog.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\runtimes\win\lib\net8.0\System.ServiceProcess.ServiceController.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\Views\SystemTweaksView.baml
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\Views\PerformanceView.g.cs
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\Views\SystemTweaksView.g.cs
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\Views\PerformanceView.baml

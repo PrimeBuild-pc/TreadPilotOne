@@ -1,5 +1,6 @@
 using System;
 using System.Drawing;
+using System.IO;
 using System.Windows.Forms;
 using Microsoft.Extensions.Logging;
 using ThreadPilot.Models;
@@ -19,6 +20,10 @@ namespace ThreadPilot.Services
         private ToolStripMenuItem? _monitoringToggleMenuItem;
         private ToolStripMenuItem? _gameBoostStatusMenuItem;
         private ToolStripMenuItem? _settingsMenuItem;
+        private ToolStripMenuItem? _powerPlansMenuItem;
+        private ToolStripMenuItem? _profilesMenuItem;
+        private ToolStripMenuItem? _performanceMenuItem;
+        private ToolStripMenuItem? _systemStatusMenuItem;
         private ApplicationSettingsModel _settings;
         private bool _isMonitoring = true;
         private bool _isWmiAvailable = true;
@@ -32,6 +37,9 @@ namespace ThreadPilot.Services
         public event EventHandler? ExitRequested;
         public event EventHandler<MonitoringToggleEventArgs>? MonitoringToggleRequested;
         public event EventHandler? SettingsRequested;
+        public event EventHandler<PowerPlanChangeRequestedEventArgs>? PowerPlanChangeRequested;
+        public event EventHandler<ProfileApplicationRequestedEventArgs>? ProfileApplicationRequested;
+        public event EventHandler? PerformanceDashboardRequested;
 
         public SystemTrayService(ILogger<SystemTrayService> logger)
         {
@@ -45,6 +53,13 @@ namespace ThreadPilot.Services
             {
                 _logger.LogInformation("Initializing system tray service");
 
+                // Check if already initialized to prevent duplicate icons
+                if (_notifyIcon != null)
+                {
+                    _logger.LogInformation("System tray service already initialized, skipping duplicate initialization to prevent duplicate icons");
+                    return;
+                }
+
                 // Create the notify icon
                 _notifyIcon = new NotifyIcon
                 {
@@ -52,15 +67,45 @@ namespace ThreadPilot.Services
                     Visible = false
                 };
 
-                // Try to load icon from resources or use default
+                // Try to load the same icon as the main application
                 try
                 {
-                    // For now, use a simple system icon
-                    _notifyIcon.Icon = SystemIcons.Application;
+                    // First try to use the application's icon (same as main window)
+                    var app = System.Windows.Application.Current;
+                    if (app?.MainWindow?.Icon != null)
+                    {
+                        // Convert WPF ImageSource to System.Drawing.Icon
+                        var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ico.ico");
+                        if (File.Exists(iconPath))
+                        {
+                            _notifyIcon.Icon = new Icon(iconPath);
+                            _logger.LogInformation("Loaded custom tray icon from ico.ico file (same as main application)");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("ico.ico file not found, using default system icon");
+                            _notifyIcon.Icon = SystemIcons.Application;
+                        }
+                    }
+                    else
+                    {
+                        // Fallback to file-based loading
+                        var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ico.ico");
+                        if (File.Exists(iconPath))
+                        {
+                            _notifyIcon.Icon = new Icon(iconPath);
+                            _logger.LogInformation("Loaded custom tray icon from ico.ico file");
+                        }
+                        else
+                        {
+                            _logger.LogWarning("ico.ico file not found at {IconPath}, using default system icon", iconPath);
+                            _notifyIcon.Icon = SystemIcons.Application;
+                        }
+                    }
                 }
                 catch (Exception ex)
                 {
-                    _logger.LogWarning(ex, "Failed to load tray icon, using default");
+                    _logger.LogWarning(ex, "Failed to load custom tray icon, using default");
                     _notifyIcon.Icon = SystemIcons.Application;
                 }
 
@@ -87,11 +132,19 @@ namespace ThreadPilot.Services
         {
             _contextMenu = new ContextMenuStrip();
 
+            // System status (disabled, for display only)
+            _systemStatusMenuItem = new ToolStripMenuItem("System Status")
+            {
+                Enabled = false,
+                Font = new Font(_contextMenu.Font, FontStyle.Bold)
+            };
+            _contextMenu.Items.Add(_systemStatusMenuItem);
+
             // Selected process info (disabled, for display only)
             _selectedProcessMenuItem = new ToolStripMenuItem("No process selected")
             {
                 Enabled = false,
-                Font = new Font(_contextMenu.Font, FontStyle.Bold)
+                Font = new Font(_contextMenu.Font, FontStyle.Italic)
             };
             _contextMenu.Items.Add(_selectedProcessMenuItem);
 
@@ -99,7 +152,7 @@ namespace ThreadPilot.Services
             _contextMenu.Items.Add(new ToolStripSeparator());
 
             // Quick apply command
-            _quickApplyMenuItem = new ToolStripMenuItem("Quick Apply Affinity & Power Plan")
+            _quickApplyMenuItem = new ToolStripMenuItem("⚡ Quick Apply Affinity & Power Plan")
             {
                 Enabled = false
             };
@@ -109,13 +162,29 @@ namespace ThreadPilot.Services
             // Separator
             _contextMenu.Items.Add(new ToolStripSeparator());
 
+            // Power Plans submenu
+            _powerPlansMenuItem = new ToolStripMenuItem("🔋 Power Plans");
+            _contextMenu.Items.Add(_powerPlansMenuItem);
+
+            // Profiles submenu
+            _profilesMenuItem = new ToolStripMenuItem("📋 Profiles");
+            _contextMenu.Items.Add(_profilesMenuItem);
+
+            // Performance Dashboard
+            _performanceMenuItem = new ToolStripMenuItem("📊 Performance Dashboard");
+            _performanceMenuItem.Click += OnPerformanceDashboardClick;
+            _contextMenu.Items.Add(_performanceMenuItem);
+
+            // Separator
+            _contextMenu.Items.Add(new ToolStripSeparator());
+
             // Monitoring toggle
-            _monitoringToggleMenuItem = new ToolStripMenuItem("Disable Process Monitoring");
+            _monitoringToggleMenuItem = new ToolStripMenuItem("🔍 Disable Process Monitoring");
             _monitoringToggleMenuItem.Click += OnMonitoringToggleClick;
             _contextMenu.Items.Add(_monitoringToggleMenuItem);
 
             // Game Boost status (disabled, for display only)
-            _gameBoostStatusMenuItem = new ToolStripMenuItem("Game Boost: Inactive")
+            _gameBoostStatusMenuItem = new ToolStripMenuItem("🎮 Game Boost: Inactive")
             {
                 Enabled = false,
                 Font = new Font(_contextMenu.Font, FontStyle.Italic)
@@ -126,12 +195,12 @@ namespace ThreadPilot.Services
             _contextMenu.Items.Add(new ToolStripSeparator());
 
             // Settings
-            _settingsMenuItem = new ToolStripMenuItem("Settings...");
+            _settingsMenuItem = new ToolStripMenuItem("⚙️ Settings...");
             _settingsMenuItem.Click += OnSettingsClick;
             _contextMenu.Items.Add(_settingsMenuItem);
 
             // Show main window
-            var showMenuItem = new ToolStripMenuItem("Show ThreadPilot");
+            var showMenuItem = new ToolStripMenuItem("🪟 Show ThreadPilot");
             showMenuItem.Click += OnShowMainWindowClick;
             _contextMenu.Items.Add(showMenuItem);
 
@@ -139,7 +208,7 @@ namespace ThreadPilot.Services
             _contextMenu.Items.Add(new ToolStripSeparator());
 
             // Exit
-            var exitMenuItem = new ToolStripMenuItem("Exit");
+            var exitMenuItem = new ToolStripMenuItem("❌ Exit");
             exitMenuItem.Click += OnExitClick;
             _contextMenu.Items.Add(exitMenuItem);
         }
@@ -228,6 +297,27 @@ namespace ThreadPilot.Services
             SettingsRequested?.Invoke(this, EventArgs.Empty);
         }
 
+        private void OnPerformanceDashboardClick(object? sender, EventArgs e)
+        {
+            PerformanceDashboardRequested?.Invoke(this, EventArgs.Empty);
+        }
+
+        private void OnPowerPlanClick(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is PowerPlanModel powerPlan)
+            {
+                PowerPlanChangeRequested?.Invoke(this, new PowerPlanChangeRequestedEventArgs(powerPlan.Guid, powerPlan.Name));
+            }
+        }
+
+        private void OnProfileClick(object? sender, EventArgs e)
+        {
+            if (sender is ToolStripMenuItem menuItem && menuItem.Tag is string profileName)
+            {
+                ProfileApplicationRequested?.Invoke(this, new ProfileApplicationRequestedEventArgs(profileName));
+            }
+        }
+
         public void UpdateMonitoringStatus(bool isMonitoring, bool isWmiAvailable = true)
         {
             _isMonitoring = isMonitoring;
@@ -258,19 +348,29 @@ namespace ThreadPilot.Services
 
             try
             {
-                // For now, use different system icons to represent states
-                // In a real implementation, you might want custom icons
-                _notifyIcon.Icon = state switch
+                // Always use the custom ThreadPilot icon regardless of state
+                // The tooltip will indicate the current state instead
+                var iconPath = Path.Combine(AppDomain.CurrentDomain.BaseDirectory, "ico.ico");
+                if (File.Exists(iconPath))
                 {
-                    TrayIconState.Normal => SystemIcons.Application,
-                    TrayIconState.Monitoring => SystemIcons.Information,
-                    TrayIconState.Error => SystemIcons.Error,
-                    TrayIconState.Disabled => SystemIcons.Warning,
-                    TrayIconState.GameBoost => SystemIcons.Shield, // Use shield icon for Game Boost
-                    _ => SystemIcons.Application
-                };
-
-                _logger.LogDebug("Tray icon updated to state: {State}", state);
+                    // Use custom icon for all states
+                    _notifyIcon.Icon = new Icon(iconPath);
+                    _logger.LogDebug("Tray icon updated to state: {State} using custom icon", state);
+                }
+                else
+                {
+                    // Fallback to system icons if custom icon is not available
+                    _notifyIcon.Icon = state switch
+                    {
+                        TrayIconState.Normal => SystemIcons.Application,
+                        TrayIconState.Monitoring => SystemIcons.Information,
+                        TrayIconState.Error => SystemIcons.Error,
+                        TrayIconState.Disabled => SystemIcons.Warning,
+                        TrayIconState.GameBoost => SystemIcons.Shield,
+                        _ => SystemIcons.Application
+                    };
+                    _logger.LogDebug("Tray icon updated to state: {State} using system icon (custom icon not found)", state);
+                }
             }
             catch (Exception ex)
             {
@@ -352,6 +452,85 @@ namespace ThreadPilot.Services
             UpdateTooltip($"ThreadPilot - {status}");
 
             _logger.LogDebug("Game Boost status updated: Active={IsActive}, Game={GameName}", isGameBoostActive, currentGameName);
+        }
+
+        public void UpdatePowerPlans(IEnumerable<PowerPlanModel> powerPlans, PowerPlanModel? activePlan)
+        {
+            if (_powerPlansMenuItem == null) return;
+
+            try
+            {
+                _powerPlansMenuItem.DropDownItems.Clear();
+
+                foreach (var powerPlan in powerPlans)
+                {
+                    var menuItem = new ToolStripMenuItem(powerPlan.Name)
+                    {
+                        Tag = powerPlan,
+                        Checked = activePlan?.Guid == powerPlan.Guid
+                    };
+                    menuItem.Click += OnPowerPlanClick;
+                    _powerPlansMenuItem.DropDownItems.Add(menuItem);
+                }
+
+                _logger.LogDebug("Updated power plans in context menu");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update power plans in context menu");
+            }
+        }
+
+        public void UpdateProfiles(IEnumerable<string> profileNames)
+        {
+            if (_profilesMenuItem == null) return;
+
+            try
+            {
+                _profilesMenuItem.DropDownItems.Clear();
+
+                if (!profileNames.Any())
+                {
+                    var noProfilesItem = new ToolStripMenuItem("No profiles available")
+                    {
+                        Enabled = false
+                    };
+                    _profilesMenuItem.DropDownItems.Add(noProfilesItem);
+                }
+                else
+                {
+                    foreach (var profileName in profileNames)
+                    {
+                        var menuItem = new ToolStripMenuItem(profileName)
+                        {
+                            Tag = profileName
+                        };
+                        menuItem.Click += OnProfileClick;
+                        _profilesMenuItem.DropDownItems.Add(menuItem);
+                    }
+                }
+
+                _logger.LogDebug("Updated profiles in context menu");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update profiles in context menu");
+            }
+        }
+
+        public void UpdateSystemStatus(string currentPowerPlan, double cpuUsage, double memoryUsage)
+        {
+            if (_systemStatusMenuItem == null) return;
+
+            try
+            {
+                _systemStatusMenuItem.Text = $"💻 CPU: {cpuUsage:F1}% | RAM: {memoryUsage:F1}% | {currentPowerPlan}";
+                _logger.LogDebug("Updated system status in context menu");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Failed to update system status in context menu");
+            }
         }
 
         public void Dispose()

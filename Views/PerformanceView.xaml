@@ -1,0 +1,201 @@
+<UserControl x:Class="ThreadPilot.Views.PerformanceView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ThreadPilot.Views"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    <UserControl.Resources>
+        <Style x:Key="MetricCardStyle" TargetType="Border">
+            <Setter Property="Background" Value="#2D2D30"/>
+            <Setter Property="BorderBrush" Value="#3F3F46"/>
+            <Setter Property="BorderThickness" Value="1"/>
+            <Setter Property="CornerRadius" Value="8"/>
+            <Setter Property="Padding" Value="16"/>
+            <Setter Property="Margin" Value="8"/>
+        </Style>
+        
+        <Style x:Key="MetricTitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="14"/>
+            <Setter Property="FontWeight" Value="SemiBold"/>
+            <Setter Property="Foreground" Value="#E1E1E6"/>
+            <Setter Property="Margin" Value="0,0,0,8"/>
+        </Style>
+        
+        <Style x:Key="MetricValueStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="24"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Foreground" Value="#00D4FF"/>
+        </Style>
+        
+        <Style x:Key="MetricSubtitleStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="12"/>
+            <Setter Property="Foreground" Value="#A1A1AA"/>
+            <Setter Property="Margin" Value="0,4,0,0"/>
+        </Style>
+    </UserControl.Resources>
+    
+    <Grid Background="#1E1E1E">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+        
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#252526" BorderBrush="#3F3F46" BorderThickness="0,0,0,1" Padding="16">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
+                
+                <StackPanel Grid.Column="0" Orientation="Horizontal">
+                    <TextBlock Text="Performance Dashboard" FontSize="18" FontWeight="Bold" Foreground="#E1E1E6" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding UptimeText}" FontSize="12" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="16,0,0,0"/>
+                </StackPanel>
+                
+                <StackPanel Grid.Column="1" Orientation="Horizontal">
+                    <Button Content="{Binding IsMonitoring, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Stop Monitoring|Start Monitoring'}"
+                            Command="{Binding ToggleMonitoringCommand}"
+                            Background="#0E639C" 
+                            Foreground="White" 
+                            BorderThickness="0" 
+                            Padding="12,6" 
+                            Margin="8,0"/>
+                    <Button Content="Clear History" 
+                            Command="{Binding ClearHistoryCommand}"
+                            Background="#DC3545" 
+                            Foreground="White" 
+                            BorderThickness="0" 
+                            Padding="12,6" 
+                            Margin="8,0"/>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Metrics Overview -->
+        <Grid Grid.Row="1" Margin="8">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            
+            <!-- CPU Usage -->
+            <Border Grid.Column="0" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="CPU Usage" Style="{StaticResource MetricTitleStyle}"/>
+                    <TextBlock Text="{Binding CurrentMetrics.TotalCpuUsage, StringFormat={}{0:F1}%}" Style="{StaticResource MetricValueStyle}"/>
+                    <TextBlock Text="{Binding CurrentMetrics.LogicalCoreCount, StringFormat={}{0} cores}" Style="{StaticResource MetricSubtitleStyle}"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Memory Usage -->
+            <Border Grid.Column="1" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Memory Usage" Style="{StaticResource MetricTitleStyle}"/>
+                    <TextBlock Text="{Binding CurrentMetrics.MemoryUsage.UsagePercentage, StringFormat={}{0:F1}%}" Style="{StaticResource MetricValueStyle}"/>
+                    <TextBlock Text="{Binding MemoryUsageText}" Style="{StaticResource MetricSubtitleStyle}"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Top Process -->
+            <Border Grid.Column="2" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="Top CPU Process" Style="{StaticResource MetricTitleStyle}"/>
+                    <TextBlock Text="{Binding TopProcess.ProcessName}" Style="{StaticResource MetricValueStyle}" FontSize="16"/>
+                    <TextBlock Text="{Binding TopProcess.CpuUsage, StringFormat={}{0:F1}% CPU}" Style="{StaticResource MetricSubtitleStyle}"/>
+                </StackPanel>
+            </Border>
+            
+            <!-- Performance Cores -->
+            <Border Grid.Column="3" Style="{StaticResource MetricCardStyle}">
+                <StackPanel>
+                    <TextBlock Text="P-Cores Usage" Style="{StaticResource MetricTitleStyle}"/>
+                    <TextBlock Text="{Binding PerformanceCoresUsage, StringFormat={}{0:F1}%}" Style="{StaticResource MetricValueStyle}"/>
+                    <TextBlock Text="{Binding PerformanceCoresCount, StringFormat={}{0} P-cores}" Style="{StaticResource MetricSubtitleStyle}"/>
+                </StackPanel>
+            </Border>
+        </Grid>
+        
+        <!-- Detailed Views -->
+        <TabControl Grid.Row="2" Background="#1E1E1E" BorderThickness="0" Margin="8">
+            <TabControl.Resources>
+                <Style TargetType="TabItem">
+                    <Setter Property="Background" Value="#2D2D30"/>
+                    <Setter Property="Foreground" Value="#E1E1E6"/>
+                    <Setter Property="BorderThickness" Value="0"/>
+                    <Setter Property="Padding" Value="12,8"/>
+                    <Setter Property="Margin" Value="0,0,2,0"/>
+                </Style>
+            </TabControl.Resources>
+            
+            <!-- Per-Core CPU Usage -->
+            <TabItem Header="Per-Core Usage">
+                <Grid Background="#1E1E1E">
+                    <ScrollViewer VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Disabled">
+                        <ItemsControl ItemsSource="{Binding CurrentMetrics.CpuCores}" Margin="16">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <UniformGrid Columns="4"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Border Style="{StaticResource MetricCardStyle}" Margin="4">
+                                        <StackPanel>
+                                            <TextBlock Text="{Binding CoreId, StringFormat=Core {0}}" Style="{StaticResource MetricTitleStyle}" FontSize="12"/>
+                                            <TextBlock Text="{Binding Usage, StringFormat={}{0:F1}%}" Style="{StaticResource MetricValueStyle}" FontSize="18"/>
+                                            <TextBlock Text="{Binding CoreType}" Style="{StaticResource MetricSubtitleStyle}"/>
+                                            <ProgressBar Value="{Binding Usage}" Maximum="100" Height="4" Margin="0,4,0,0" 
+                                                        Background="#3F3F46" Foreground="#00D4FF"/>
+                                        </StackPanel>
+                                    </Border>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+                    </ScrollViewer>
+                </Grid>
+            </TabItem>
+            
+            <!-- Top Processes -->
+            <TabItem Header="Top Processes">
+                <Grid Background="#1E1E1E">
+                    <DataGrid ItemsSource="{Binding CurrentMetrics.TopProcesses}" 
+                              AutoGenerateColumns="False"
+                              Background="#1E1E1E"
+                              Foreground="#E1E1E6"
+                              GridLinesVisibility="Horizontal"
+                              HeadersVisibility="Column"
+                              CanUserAddRows="False"
+                              CanUserDeleteRows="False"
+                              IsReadOnly="True"
+                              Margin="16">
+                        <DataGrid.Columns>
+                            <DataGridTextColumn Header="Process" Binding="{Binding ProcessName}" Width="*"/>
+                            <DataGridTextColumn Header="Window Title" Binding="{Binding WindowTitle}" Width="2*"/>
+                            <DataGridTextColumn Header="CPU %" Binding="{Binding CpuUsage, StringFormat={}{0:F1}}" Width="80"/>
+                            <DataGridTextColumn Header="Memory" Binding="{Binding MemoryUsage, Converter={StaticResource BytesToStringConverter}}" Width="100"/>
+                            <DataGridTextColumn Header="Threads" Binding="{Binding ThreadCount}" Width="80"/>
+                            <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="100"/>
+                        </DataGrid.Columns>
+                    </DataGrid>
+                </Grid>
+            </TabItem>
+            
+            <!-- Historical Data -->
+            <TabItem Header="History">
+                <Grid Background="#1E1E1E">
+                    <TextBlock Text="Historical performance charts will be implemented here" 
+                               HorizontalAlignment="Center" 
+                               VerticalAlignment="Center" 
+                               Foreground="#A1A1AA" 
+                               FontSize="16"/>
+                </Grid>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

@@ -27,26 +27,59 @@
 
         <!-- Search and Refresh Controls -->
         <GroupBox Grid.Row="0" Header="🔍 Process Search &amp; Control" Margin="0,0,0,10">
-            <StackPanel Orientation="Horizontal" Margin="5">
-                <TextBox Width="200"
-                         Margin="0,0,10,0"
-                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
-                         ToolTip="Search processes by name"
-                         VerticalAlignment="Center"/>
-                <CheckBox Content="Active Applications Only"
-                          IsChecked="{Binding ShowActiveApplicationsOnly}"
-                          Margin="0,0,10,0"
-                          VerticalAlignment="Center"
-                          ToolTip="Show only applications with visible windows (like Process Lasso's Active Processes)"/>
-                <Button Command="{Binding LoadProcessesCommand}"
-                        Content="🔄 Refresh"
-                        Padding="10,5"
-                        ToolTip="Refresh the process list"/>
-            </StackPanel>
+            <Grid Margin="5">
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"/>
+                    <RowDefinition Height="Auto"/>
+                </Grid.RowDefinitions>
+
+                <!-- Search and Basic Controls -->
+                <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,5">
+                    <TextBox Width="200"
+                             Margin="0,0,10,0"
+                             Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                             ToolTip="Search processes by name"
+                             VerticalAlignment="Center"/>
+                    <CheckBox Content="Active Applications Only"
+                              IsChecked="{Binding ShowActiveApplicationsOnly}"
+                              Margin="0,0,10,0"
+                              VerticalAlignment="Center"
+                              ToolTip="Show only applications with visible windows (like Process Lasso's Active Processes)"/>
+                    <Button Command="{Binding LoadProcessesCommand}"
+                            Content="🔄 Refresh"
+                            Padding="10,5"
+                            ToolTip="Refresh the process list"/>
+                </StackPanel>
+
+                <!-- Smart Filtering Controls -->
+                <StackPanel Grid.Row="1" Orientation="Horizontal">
+                    <CheckBox Content="Hide System Processes"
+                              IsChecked="{Binding HideSystemProcesses}"
+                              Margin="0,0,15,0"
+                              VerticalAlignment="Center"
+                              ToolTip="Hide Windows system processes"/>
+                    <CheckBox Content="Hide Idle Processes"
+                              IsChecked="{Binding HideIdleProcesses}"
+                              Margin="0,0,15,0"
+                              VerticalAlignment="Center"
+                              ToolTip="Hide processes with very low CPU usage"/>
+                    <TextBlock Text="Sort by:" VerticalAlignment="Center" Margin="0,0,5,0"/>
+                    <ComboBox SelectedValue="{Binding SortMode}"
+                              SelectedValuePath="Tag"
+                              Width="120"
+                              VerticalAlignment="Center"
+                              ToolTip="Choose how to sort the process list">
+                        <ComboBoxItem Content="CPU Usage" Tag="CpuUsage"/>
+                        <ComboBoxItem Content="Memory Usage" Tag="MemoryUsage"/>
+                        <ComboBoxItem Content="Process Name" Tag="Name"/>
+                        <ComboBoxItem Content="Process ID" Tag="ProcessId"/>
+                    </ComboBox>
+                </StackPanel>
+            </Grid>
         </GroupBox>
 
         <!-- Process List -->
-        <DataGrid Grid.Row="1" 
+        <DataGrid Grid.Row="1"
                   ItemsSource="{Binding FilteredProcesses}"
                   SelectedItem="{Binding SelectedProcess}"
                   AutoGenerateColumns="False"
@@ -56,7 +89,13 @@
                   HeadersVisibility="Column"
                   CanUserResizeColumns="True"
                   CanUserSortColumns="True"
-                  Margin="0,0,0,10">
+                  Margin="0,0,0,10"
+                  VirtualizingPanel.IsVirtualizing="True"
+                  VirtualizingPanel.VirtualizationMode="Recycling"
+                  VirtualizingPanel.ScrollUnit="Item"
+                  EnableRowVirtualization="True"
+                  EnableColumnVirtualization="True"
+                  ScrollViewer.CanContentScroll="True">
             <DataGrid.Columns>
                 <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
                 <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="60"/>

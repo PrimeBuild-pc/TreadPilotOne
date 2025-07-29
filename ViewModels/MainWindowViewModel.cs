@@ -14,6 +14,8 @@ namespace ThreadPilot
         private readonly IGameBoostService? _gameBoostService;
         private readonly IProcessMonitorManagerService? _processMonitorManagerService;
         private readonly INotificationService? _notificationService;
+        private readonly IElevationService? _elevationService;
+        private readonly ISecurityService? _securityService;
 
         [ObservableProperty]
         private bool isGameBoostActive = false;
@@ -30,17 +32,30 @@ namespace ThreadPilot
         [ObservableProperty]
         private string processMonitoringStatusText = "Process Monitoring: Inactive";
 
+        [ObservableProperty]
+        private bool isRunningAsAdministrator = false;
+
+        [ObservableProperty]
+        private string elevationStatusText = "Checking elevation status...";
+
+        [ObservableProperty]
+        private bool showElevationPrompt = false;
+
         public MainWindowViewModel(
             ILogger<MainWindowViewModel> logger,
             IEnhancedLoggingService? enhancedLoggingService = null,
             IGameBoostService? gameBoostService = null,
             IProcessMonitorManagerService? processMonitorManagerService = null,
-            INotificationService? notificationService = null)
+            INotificationService? notificationService = null,
+            IElevationService? elevationService = null,
+            ISecurityService? securityService = null)
             : base(logger, enhancedLoggingService)
         {
             _gameBoostService = gameBoostService;
             _processMonitorManagerService = processMonitorManagerService;
             _notificationService = notificationService;
+            _elevationService = elevationService;
+            _securityService = securityService;
         }
 
         public override async Task InitializeAsync()
@@ -61,6 +76,7 @@ namespace ThreadPilot
 
                 // Initialize status
                 await UpdateStatusAsync();
+                UpdateElevationStatus();
 
                 await LogUserActionAsync("MainWindow", "Initialized main window", "Application startup");
             }, "Initializing main window...");
@@ -106,6 +122,25 @@ namespace ThreadPilot
             }, "Toggling game boost...");
         }
 
+        [RelayCommand]
+        private async Task RequestElevationAsync()
+        {
+            if (_elevationService == null) return;
+
+            await ExecuteAsync(async () =>
+            {
+                var success = await _elevationService.RequestElevationIfNeeded();
+                if (success)
+                {
+                    await LogUserActionAsync("Elevation", "Requested elevation", "User action");
+                }
+                else
+                {
+                    await LogUserActionAsync("Elevation", "Elevation request failed or cancelled", "User action");
+                }
+            }, "Requesting elevation...");
+        }
+
         private async Task UpdateStatusAsync()
         {
             try
@@ -126,11 +161,29 @@ namespace ThreadPilot
                         ? "Process Monitoring: Active"
                         : "Process Monitoring: Inactive";
                 }
+
+                // Update elevation status
+                UpdateElevationStatus();
             }
             catch (Exception ex)
             {
                 SetError("Failed to update status", ex);
             }
+        }
+
+        private void UpdateElevationStatus()
+        {
+            if (_elevationService == null)
+            {
+                IsRunningAsAdministrator = false;
+                ElevationStatusText = "Elevation service not available";
+                ShowElevationPrompt = false;
+                return;
+            }
+
+            IsRunningAsAdministrator = _elevationService.IsRunningAsAdministrator();
+            ElevationStatusText = _elevationService.GetElevationStatus();
+            ShowElevationPrompt = !IsRunningAsAdministrator;
         }
 
         private void UpdateGameBoostStatusText()

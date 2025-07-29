@@ -82,6 +82,10 @@ namespace ThreadPilot.Services
             // Game boost and optimization services
             services.AddSingleton<IGameBoostService, GameBoostService>();
 
+            // Game detection and performance monitoring services
+            services.AddSingleton<IGameDetectionService, GameDetectionService>();
+            services.AddSingleton<IPerformanceMonitoringService, PerformanceMonitoringService>();
+
             return services;
         }
 
@@ -100,6 +104,16 @@ namespace ThreadPilot.Services
             // System integration services
             services.AddSingleton<IAutostartService, AutostartService>();
 
+            // Security and elevation services
+            services.AddSingleton<ISecurityService, SecurityService>();
+            services.AddSingleton<IElevationService, ElevationService>();
+
+            // System tweaks service
+            services.AddSingleton<ISystemTweaksService, SystemTweaksService>();
+
+            // Keyboard shortcut service
+            services.AddSingleton<IKeyboardShortcutService, KeyboardShortcutService>();
+
             return services;
         }
 
@@ -111,13 +125,15 @@ namespace ThreadPilot.Services
             // ViewModel factory for centralized ViewModel management
             services.AddViewModelFactory();
 
-            // ViewModels - Transient for proper lifecycle management
-            services.AddTransient<ProcessViewModel>();
+            // ViewModels - ProcessViewModel as Singleton to share state across views, others as Transient
+            services.AddSingleton<ProcessViewModel>();
             services.AddTransient<PowerPlanViewModel>();
             services.AddTransient<ProcessPowerPlanAssociationViewModel>();
             services.AddTransient<SettingsViewModel>();
             services.AddTransient<LogViewerViewModel>();
             services.AddTransient<MainWindowViewModel>();
+            services.AddTransient<PerformanceViewModel>();
+            services.AddTransient<SystemTweaksViewModel>();
 
             // Views - Transient for proper lifecycle management
             services.AddTransient<MainWindow>();

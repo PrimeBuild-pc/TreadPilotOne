@@ -1,0 +1,13 @@
+{
+  "defaultPowerPlanGuid": "",
+  "defaultPowerPlanName": "",
+  "isEventBasedMonitoringEnabled": true,
+  "isFallbackPollingEnabled": true,
+  "pollingIntervalSeconds": 5,
+  "preventDuplicatePowerPlanChanges": true,
+  "powerPlanChangeDelayMs": 1000,
+  "enableLogging": true,
+  "associations": [],
+  "lastSavedDate": "2025-07-30T00:29:31.7970756+02:00",
+  "configurationVersion": "1.0"
+}

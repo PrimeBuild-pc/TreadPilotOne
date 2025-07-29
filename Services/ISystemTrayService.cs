@@ -35,6 +35,21 @@ namespace ThreadPilot.Services
         event EventHandler? SettingsRequested;
 
         /// <summary>
+        /// Event fired when power plan change is requested from tray
+        /// </summary>
+        event EventHandler<PowerPlanChangeRequestedEventArgs>? PowerPlanChangeRequested;
+
+        /// <summary>
+        /// Event fired when profile application is requested from tray
+        /// </summary>
+        event EventHandler<ProfileApplicationRequestedEventArgs>? ProfileApplicationRequested;
+
+        /// <summary>
+        /// Event fired when performance dashboard is requested from tray
+        /// </summary>
+        event EventHandler? PerformanceDashboardRequested;
+
+        /// <summary>
         /// Initializes the system tray icon
         /// </summary>
         void Initialize();
@@ -88,6 +103,21 @@ namespace ThreadPilot.Services
         /// Updates the Game Boost status in the tray
         /// </summary>
         void UpdateGameBoostStatus(bool isGameBoostActive, string? currentGameName = null);
+
+        /// <summary>
+        /// Updates the available power plans in the context menu
+        /// </summary>
+        void UpdatePowerPlans(IEnumerable<PowerPlanModel> powerPlans, PowerPlanModel? activePlan);
+
+        /// <summary>
+        /// Updates the available profiles in the context menu
+        /// </summary>
+        void UpdateProfiles(IEnumerable<string> profileNames);
+
+        /// <summary>
+        /// Updates the current system status in the tray
+        /// </summary>
+        void UpdateSystemStatus(string currentPowerPlan, double cpuUsage, double memoryUsage);
     }
 
     /// <summary>
@@ -100,6 +130,34 @@ namespace ThreadPilot.Services
         public MonitoringToggleEventArgs(bool enableMonitoring)
         {
             EnableMonitoring = enableMonitoring;
+        }
+    }
+
+    /// <summary>
+    /// Event args for power plan change requests
+    /// </summary>
+    public class PowerPlanChangeRequestedEventArgs : EventArgs
+    {
+        public string PowerPlanGuid { get; }
+        public string PowerPlanName { get; }
+
+        public PowerPlanChangeRequestedEventArgs(string powerPlanGuid, string powerPlanName)
+        {
+            PowerPlanGuid = powerPlanGuid;
+            PowerPlanName = powerPlanName;
+        }
+    }
+
+    /// <summary>
+    /// Event args for profile application requests
+    /// </summary>
+    public class ProfileApplicationRequestedEventArgs : EventArgs
+    {
+        public string ProfileName { get; }
+
+        public ProfileApplicationRequestedEventArgs(string profileName)
+        {
+            ProfileName = profileName;
         }
     }
 

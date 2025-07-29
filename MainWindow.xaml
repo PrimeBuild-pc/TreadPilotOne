@@ -7,37 +7,89 @@
         xmlns:views="clr-namespace:ThreadPilot.Views"
         xmlns:viewModels="clr-namespace:ThreadPilot.ViewModels"
         mc:Ignorable="d"
-        Title="ThreadPilot - Process &amp; Power Plan Manager" 
-        Height="720" 
+        Title="ThreadPilot - Process &amp; Power Plan Manager"
+        Height="720"
         Width="1280"
         WindowStartupLocation="CenterScreen">
 
+    <Window.Resources>
+        <!-- Loading Spinner Animation -->
+        <Storyboard x:Key="SpinnerAnimation" RepeatBehavior="Forever">
+            <DoubleAnimation Storyboard.TargetName="SpinnerRotation"
+                           Storyboard.TargetProperty="Angle"
+                           From="0" To="360" Duration="0:0:1"/>
+        </Storyboard>
+
+        <!-- Fade In Animation -->
+        <Storyboard x:Key="FadeInAnimation">
+            <DoubleAnimation Storyboard.TargetName="LoadingOverlay"
+                           Storyboard.TargetProperty="Opacity"
+                           From="0" To="1" Duration="0:0:0.2"/>
+        </Storyboard>
+
+        <!-- Fade Out Animation -->
+        <Storyboard x:Key="FadeOutAnimation">
+            <DoubleAnimation Storyboard.TargetName="LoadingOverlay"
+                           Storyboard.TargetProperty="Opacity"
+                           From="1" To="0" Duration="0:0:0.3"/>
+        </Storyboard>
+    </Window.Resources>
+
     <Grid>
         <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <TabControl Grid.Row="1" Margin="10">
-            <TabItem Header="🔧 Process Management">
-                <views:ProcessView/>
-            </TabItem>
-            <TabItem Header="⚡ Power Plans">
-                <views:PowerPlanView/>
-            </TabItem>
-            <TabItem Header="🔗 Process Associations">
-                <views:ProcessPowerPlanAssociationView x:Name="AssociationView"/>
-            </TabItem>
-            <TabItem Header="📋 Activity Logs">
-                <views:LogViewerView/>
-            </TabItem>
-            <TabItem Header="⚙️ Settings">
-                <views:SettingsView/>
-            </TabItem>
-        </TabControl>
+        <!-- Elevation Status Bar -->
+        <Border Grid.Row="0" Background="#FFF3CD" BorderBrush="#FFEAA2" BorderThickness="1"
+                Visibility="{Binding ShowElevationPrompt, Converter={StaticResource BoolToVisibilityConverter}}"
+                Margin="5,5,5,0">
+            <Grid Margin="10,5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="Auto"/>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="Auto"/>
+                </Grid.ColumnDefinitions>
 
-        <StatusBar Grid.Row="2" Height="25">
+                <TextBlock Grid.Column="0" Text="⚠️" FontSize="16" VerticalAlignment="Center" Margin="0,0,10,0"/>
+                <TextBlock Grid.Column="1"
+                           Text="ThreadPilot is running with limited privileges. Some features may not be available. Administrator privileges are required for full functionality."
+                           TextWrapping="Wrap" VerticalAlignment="Center"/>
+                <Button Grid.Column="2" Content="Request Elevation"
+                        Command="{Binding RequestElevationCommand}"
+                        Margin="10,0,0,0" Padding="10,5"/>
+            </Grid>
+        </Border>
+
+        <!-- Main Application Content -->
+        <Grid x:Name="MainContent" Grid.Row="2">
+            <TabControl Margin="10">
+                <TabItem Header="🔧 Process Management">
+                    <views:ProcessView/>
+                </TabItem>
+                <TabItem Header="⚡ Power Plans">
+                    <views:PowerPlanView/>
+                </TabItem>
+                <TabItem Header="🔗 Process Associations">
+                    <views:ProcessPowerPlanAssociationView x:Name="AssociationView"/>
+                </TabItem>
+                <TabItem Header="🔧 Tweaks">
+                    <views:SystemTweaksView x:Name="SystemTweaksView"/>
+                </TabItem>
+                <TabItem Header="📋 Activity Logs">
+                    <views:LogViewerView/>
+                </TabItem>
+                <TabItem Header="⚙️ Settings">
+                    <views:SettingsView/>
+                </TabItem>
+            </TabControl>
+        </Grid>
+
+        <!-- Status Bar -->
+        <StatusBar Grid.Row="3" Height="25">
             <StatusBarItem>
                 <TextBlock Text="{Binding StatusMessage}"/>
             </StatusBarItem>
@@ -52,6 +104,77 @@
                                Visibility="{Binding IsGameBoostActive, Converter={StaticResource BoolToVisibilityConverter}}"/>
                 </StackPanel>
             </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding ElevationStatusText}"
+                               FontWeight="{Binding IsRunningAsAdministrator, Converter={StaticResource BoolToFontWeightConverter}}"
+                               Foreground="{Binding IsRunningAsAdministrator, Converter={StaticResource BoolToColorConverter}}"/>
+                    <TextBlock Text="🔒"
+                               Margin="5,0,0,0"
+                               Visibility="{Binding IsRunningAsAdministrator, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </StatusBarItem>
         </StatusBar>
+
+        <!-- Startup Loading Overlay -->
+        <Grid x:Name="LoadingOverlay"
+              Grid.RowSpan="4"
+              Background="#80000000"
+              Visibility="Visible"
+              Panel.ZIndex="1000">
+            <Border Background="White"
+                    BorderBrush="LightGray"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="30"
+                    HorizontalAlignment="Center"
+                    VerticalAlignment="Center"
+                    MinWidth="300"
+                    MaxWidth="400">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <!-- Application Icon -->
+                    <Image x:Name="LoadingIcon"
+                           Width="64"
+                           Height="64"
+                           Margin="0,0,0,20"
+                           HorizontalAlignment="Center"/>
+
+                    <!-- Loading Spinner -->
+                    <Grid Width="32" Height="32" Margin="0,0,0,20" HorizontalAlignment="Center">
+                        <Ellipse Width="32" Height="32"
+                                 Stroke="LightGray"
+                                 StrokeThickness="3"
+                                 Opacity="0.3"/>
+                        <Ellipse x:Name="SpinnerEllipse"
+                                 Width="32"
+                                 Height="32"
+                                 Stroke="#0078D4"
+                                 StrokeThickness="3"
+                                 StrokeDashArray="20,10"
+                                 RenderTransformOrigin="0.5,0.5">
+                            <Ellipse.RenderTransform>
+                                <RotateTransform x:Name="SpinnerRotation"/>
+                            </Ellipse.RenderTransform>
+                        </Ellipse>
+                    </Grid>
+
+                    <!-- Loading Text -->
+                    <TextBlock x:Name="LoadingText"
+                               Text="Loading ThreadPilot..."
+                               FontSize="16"
+                               FontWeight="SemiBold"
+                               HorizontalAlignment="Center"
+                               Margin="0,0,0,10"/>
+
+                    <!-- Status Text -->
+                    <TextBlock x:Name="LoadingStatus"
+                               Text="Initializing services..."
+                               FontSize="12"
+                               Foreground="Gray"
+                               HorizontalAlignment="Center"/>
+                </StackPanel>
+            </Border>
+        </Grid>
     </Grid>
 </Window>

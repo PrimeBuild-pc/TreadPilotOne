@@ -9,8 +9,13 @@
             <helpers:BytesToMbConverter x:Key="BytesToMbConverter"/>
             <helpers:AffinityMaskConverter x:Key="AffinityMaskConverter"/>
             <helpers:BoolToFontWeightConverter x:Key="BoolToFontWeightConverter"/>
-            <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
-            <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <local:BoolToColorConverter x:Key="BoolToColorConverter"/>
+            <local:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+            <converters:BoolToStringConverter x:Key="BoolToStringConverter"/>
+            <converters:BytesToStringConverter x:Key="BytesToStringConverter"/>
+            <converters:InverseBooleanConverter x:Key="InverseBooleanConverter"/>
+            <local:BoolToVisibilityConverter x:Key="BooleanToVisibilityConverter"/>
+            <converters:StringToVisibilityConverter x:Key="StringToVisibilityConverter"/>
         </ResourceDictionary>
     </Application.Resources>
 </Application>

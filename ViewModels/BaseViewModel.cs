@@ -89,23 +89,35 @@ namespace ThreadPilot.ViewModels
             {
                 if (!string.IsNullOrEmpty(statusMessage))
                 {
-                    SetStatus(statusMessage);
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetStatus(statusMessage);
+                    });
                 }
 
                 await operation();
 
                 if (!string.IsNullOrEmpty(successMessage))
                 {
-                    SetStatus(successMessage, false);
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetStatus(successMessage, false);
+                    });
                 }
                 else
                 {
-                    ClearStatus();
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ClearStatus();
+                    });
                 }
             }
             catch (Exception ex)
             {
-                SetError($"Operation failed: {ex.Message}", ex);
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    SetError($"Operation failed: {ex.Message}", ex);
+                });
             }
         }
 
