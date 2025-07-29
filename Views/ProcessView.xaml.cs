@@ -4,7 +4,7 @@ using ThreadPilot.ViewModels;
 
 namespace ThreadPilot.Views
 {
-    public partial class ProcessView : UserControl
+    public partial class ProcessView : System.Windows.Controls.UserControl
     {
         public ProcessView()
         {

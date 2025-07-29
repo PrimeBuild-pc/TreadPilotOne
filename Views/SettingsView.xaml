@@ -1,0 +1,455 @@
+<UserControl x:Class="ThreadPilot.Views.SettingsView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:local="clr-namespace:ThreadPilot.Views"
+             xmlns:converters="clr-namespace:ThreadPilot.Converters"
+             mc:Ignorable="d" 
+             d:DesignHeight="600" d:DesignWidth="800">
+    
+    <UserControl.Resources>
+        <Style x:Key="SectionHeaderStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="16"/>
+            <Setter Property="FontWeight" Value="Bold"/>
+            <Setter Property="Margin" Value="0,10,0,5"/>
+            <Setter Property="Foreground" Value="#2E3440"/>
+        </Style>
+        
+        <Style x:Key="DescriptionStyle" TargetType="TextBlock">
+            <Setter Property="FontSize" Value="11"/>
+            <Setter Property="Foreground" Value="#5E81AC"/>
+            <Setter Property="Margin" Value="0,2,0,0"/>
+            <Setter Property="TextWrapping" Value="Wrap"/>
+        </Style>
+    </UserControl.Resources>
+
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <StackPanel Grid.Row="0" Margin="0,0,0,20">
+            <TextBlock Text="Application Settings" FontSize="24" FontWeight="Bold" Foreground="#2E3440"/>
+            <TextBlock Text="Configure notifications, system tray, and application behavior" 
+                       Style="{StaticResource DescriptionStyle}" FontSize="12"/>
+        </StackPanel>
+
+        <!-- Settings Content -->
+        <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
+            <StackPanel>
+                
+                <!-- Notifications Section -->
+                <TextBlock Text="Notifications" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Enable notifications" 
+                                  IsChecked="{Binding Settings.EnableNotifications}"
+                                  Margin="0,0,0,10"/>
+                        
+                        <CheckBox Content="Enable balloon notifications (system tray)" 
+                                  IsChecked="{Binding Settings.EnableBalloonNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,0,0,5"/>
+                        
+                        <CheckBox Content="Enable toast notifications (Windows 10+)" 
+                                  IsChecked="{Binding Settings.EnableToastNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,0,0,10"/>
+                        
+                        <Separator Margin="0,10"/>
+                        
+                        <TextBlock Text="Notification Types" FontWeight="SemiBold" Margin="0,5"/>
+                        
+                        <CheckBox Content="Power plan changes" 
+                                  IsChecked="{Binding Settings.EnablePowerPlanChangeNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,5,0,5"/>
+                        
+                        <CheckBox Content="Process monitoring events" 
+                                  IsChecked="{Binding Settings.EnableProcessMonitoringNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,0,0,5"/>
+                        
+                        <CheckBox Content="Error notifications" 
+                                  IsChecked="{Binding Settings.EnableErrorNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,0,0,5"/>
+                        
+                        <CheckBox Content="Success notifications" 
+                                  IsChecked="{Binding Settings.EnableSuccessNotifications}"
+                                  IsEnabled="{Binding Settings.EnableNotifications}"
+                                  Margin="20,0,0,10"/>
+                        
+                        <Separator Margin="0,10"/>
+                        
+                        <Grid Margin="0,5">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+                            
+                            <TextBlock Text="Notification duration (ms):" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1" 
+                                    Value="{Binding Settings.NotificationDisplayDurationMs}"
+                                    Minimum="1000" Maximum="30000" 
+                                    TickFrequency="1000"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"/>
+                            <TextBlock Grid.Column="2" 
+                                       Text="{Binding Settings.NotificationDisplayDurationMs}"
+                                       VerticalAlignment="Center" MinWidth="50"/>
+                        </Grid>
+                        
+                        <Button Content="Test Notification" 
+                                Command="{Binding TestNotificationCommand}"
+                                HorizontalAlignment="Left" 
+                                Margin="0,10,0,0" 
+                                Padding="15,5"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- System Tray Section -->
+                <TextBlock Text="System Tray" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Show tray icon" 
+                                  IsChecked="{Binding Settings.ShowTrayIcon}"
+                                  Margin="0,0,0,10"/>
+                        
+                        <CheckBox Content="Minimize to tray" 
+                                  IsChecked="{Binding Settings.MinimizeToTray}"
+                                  IsEnabled="{Binding Settings.ShowTrayIcon}"
+                                  Margin="20,0,0,5"/>
+                        
+                        <CheckBox Content="Close to tray (instead of exit)" 
+                                  IsChecked="{Binding Settings.CloseToTray}"
+                                  IsEnabled="{Binding Settings.ShowTrayIcon}"
+                                  Margin="20,0,0,5"/>
+                        
+                        <CheckBox Content="Start minimized" 
+                                  IsChecked="{Binding Settings.StartMinimized}"
+                                  Margin="20,0,0,10"/>
+                        
+                        <Separator Margin="0,10"/>
+                        
+                        <CheckBox Content="Enable quick apply from tray" 
+                                  IsChecked="{Binding Settings.EnableQuickApplyFromTray}"
+                                  IsEnabled="{Binding Settings.ShowTrayIcon}"
+                                  Margin="0,5"/>
+                        
+                        <CheckBox Content="Enable monitoring controls from tray" 
+                                  IsChecked="{Binding Settings.EnableMonitoringControlFromTray}"
+                                  IsEnabled="{Binding Settings.ShowTrayIcon}"
+                                  Margin="0,0,0,5"/>
+                        
+                        <CheckBox Content="Show detailed tooltips" 
+                                  IsChecked="{Binding Settings.ShowDetailedTooltips}"
+                                  IsEnabled="{Binding Settings.ShowTrayIcon}"
+                                  Margin="0,0,0,10"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Autostart Section -->
+                <TextBlock Text="Autostart" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Start with Windows"
+                                  IsChecked="{Binding Settings.AutostartWithWindows}"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock Text="Automatically start ThreadPilot when Windows starts"
+                                   Style="{StaticResource DescriptionStyle}"
+                                   Margin="20,0,0,10"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Power Plan Settings Section -->
+                <TextBlock Text="Power Plan Settings" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <Grid Margin="0,0,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Default power plan:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding AvailablePowerPlans}"
+                                      SelectedValue="{Binding Settings.DefaultPowerPlanId}"
+                                      SelectedValuePath="Id"
+                                      DisplayMemberPath="Name"
+                                      Margin="10,0"/>
+                            <Button Grid.Column="2" Content="Refresh"
+                                    Command="{Binding RefreshPowerPlansCommand}"
+                                    Padding="10,5" Margin="5,0,0,0"/>
+                        </Grid>
+
+                        <CheckBox Content="Restore default power plan on exit"
+                                  IsChecked="{Binding Settings.RestoreDefaultPowerPlanOnExit}"
+                                  Margin="0,0,0,10"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Game Boost Mode Section -->
+                <TextBlock Text="Game Boost Mode" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Enable Game Boost mode"
+                                  IsChecked="{Binding Settings.EnableGameBoostMode}"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock Text="Automatically optimize performance when games are detected"
+                                   Style="{StaticResource DescriptionStyle}"
+                                   Margin="20,0,0,10"/>
+
+                        <Grid Margin="0,5,0,10" IsEnabled="{Binding Settings.EnableGameBoostMode}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Game Boost power plan:" VerticalAlignment="Center"/>
+                            <ComboBox Grid.Column="1"
+                                      ItemsSource="{Binding AvailablePowerPlans}"
+                                      SelectedValue="{Binding Settings.GameBoostPowerPlanId}"
+                                      SelectedValuePath="Id"
+                                      DisplayMemberPath="Name"
+                                      Margin="10,0"/>
+                        </Grid>
+
+                        <CheckBox Content="Auto-detect games"
+                                  IsChecked="{Binding Settings.GameBoostAutoDetectGames}"
+                                  IsEnabled="{Binding Settings.EnableGameBoostMode}"
+                                  Margin="20,0,0,5"/>
+
+                        <CheckBox Content="Set high process priority"
+                                  IsChecked="{Binding Settings.GameBoostSetHighPriority}"
+                                  IsEnabled="{Binding Settings.EnableGameBoostMode}"
+                                  Margin="20,0,0,5"/>
+
+                        <CheckBox Content="Optimize CPU affinity"
+                                  IsChecked="{Binding Settings.GameBoostOptimizeCpuAffinity}"
+                                  IsEnabled="{Binding Settings.EnableGameBoostMode}"
+                                  Margin="20,0,0,10"/>
+
+                        <Grid Margin="20,5,0,10" IsEnabled="{Binding Settings.EnableGameBoostMode}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Detection delay (ms):" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1"
+                                    Value="{Binding Settings.GameBoostDetectionDelayMs}"
+                                    Minimum="500" Maximum="10000"
+                                    TickFrequency="500"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Settings.GameBoostDetectionDelayMs}"
+                                       VerticalAlignment="Center" MinWidth="50"/>
+                        </Grid>
+
+                        <!-- Game Management Section -->
+                        <Separator Margin="0,10,0,10" IsEnabled="{Binding Settings.EnableGameBoostMode}"/>
+                        <TextBlock Text="Known Games Management"
+                                   FontWeight="SemiBold"
+                                   Margin="0,0,0,5"
+                                   IsEnabled="{Binding Settings.EnableGameBoostMode}"/>
+
+                        <Grid Margin="0,5,0,10" IsEnabled="{Binding Settings.EnableGameBoostMode}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBox x:Name="NewGameTextBox"
+                                     Grid.Column="0"
+                                     Text="{Binding NewGameExecutableName, UpdateSourceTrigger=PropertyChanged}"
+                                     ToolTip="Enter game executable name (e.g., game.exe)"
+                                     Margin="0,0,5,0"/>
+                            <Button Grid.Column="1"
+                                    Content="Add Game"
+                                    Command="{Binding AddKnownGameCommand}"
+                                    Margin="5,0"/>
+                            <Button Grid.Column="2"
+                                    Content="Remove Selected"
+                                    Command="{Binding RemoveKnownGameCommand}"
+                                    Margin="5,0,0,0"/>
+                        </Grid>
+
+                        <ListBox ItemsSource="{Binding KnownGameExecutables}"
+                                 SelectedItem="{Binding SelectedKnownGame}"
+                                 Height="120"
+                                 Margin="0,5,0,10"
+                                 IsEnabled="{Binding Settings.EnableGameBoostMode}"
+                                 ScrollViewer.VerticalScrollBarVisibility="Auto">
+                            <ListBox.ItemTemplate>
+                                <DataTemplate>
+                                    <TextBlock Text="{Binding}" Padding="5,2"/>
+                                </DataTemplate>
+                            </ListBox.ItemTemplate>
+                        </ListBox>
+
+                        <TextBlock Text="{Binding KnownGameExecutables.Count, StringFormat='Total known games: {0}'}"
+                                   Style="{StaticResource DescriptionStyle}"
+                                   Margin="0,0,0,5"
+                                   IsEnabled="{Binding Settings.EnableGameBoostMode}"/>
+                    </StackPanel>
+                </Border>
+
+                <!-- Monitoring Settings Section -->
+                <TextBlock Text="Monitoring Settings" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Enable WMI monitoring"
+                                  IsChecked="{Binding Settings.EnableWmiMonitoring}"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock Text="Use Windows Management Instrumentation for real-time process monitoring"
+                                   Style="{StaticResource DescriptionStyle}"
+                                   Margin="20,0,0,10"/>
+
+                        <CheckBox Content="Enable fallback polling"
+                                  IsChecked="{Binding Settings.EnableFallbackPolling}"
+                                  Margin="0,0,0,10"/>
+                        <TextBlock Text="Use polling as backup when WMI monitoring fails"
+                                   Style="{StaticResource DescriptionStyle}"
+                                   Margin="20,0,0,10"/>
+
+                        <Grid Margin="0,5,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Polling interval (ms):" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1"
+                                    Value="{Binding Settings.PollingIntervalMs}"
+                                    Minimum="1000" Maximum="30000"
+                                    TickFrequency="1000"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Settings.PollingIntervalMs}"
+                                       VerticalAlignment="Center" MinWidth="50"/>
+                        </Grid>
+
+                        <Grid Margin="0,5,0,10">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Fallback polling interval (ms):" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1"
+                                    Value="{Binding Settings.FallbackPollingIntervalMs}"
+                                    Minimum="5000" Maximum="60000"
+                                    TickFrequency="5000"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Settings.FallbackPollingIntervalMs}"
+                                       VerticalAlignment="Center" MinWidth="50"/>
+                        </Grid>
+                    </StackPanel>
+                </Border>
+
+                <!-- Advanced Section -->
+                <TextBlock Text="Advanced" Style="{StaticResource SectionHeaderStyle}"/>
+                <Border Background="#F8F9FA" CornerRadius="5" Padding="15" Margin="0,5,0,15">
+                    <StackPanel>
+                        <CheckBox Content="Enable notification history"
+                                  IsChecked="{Binding Settings.EnableNotificationHistory}"
+                                  Margin="0,0,0,10"/>
+
+                        <Grid Margin="0,5" IsEnabled="{Binding Settings.EnableNotificationHistory}">
+                            <Grid.ColumnDefinitions>
+                                <ColumnDefinition Width="Auto"/>
+                                <ColumnDefinition Width="*"/>
+                                <ColumnDefinition Width="Auto"/>
+                            </Grid.ColumnDefinitions>
+
+                            <TextBlock Text="Max history items:" VerticalAlignment="Center"/>
+                            <Slider Grid.Column="1"
+                                    Value="{Binding Settings.MaxNotificationHistoryItems}"
+                                    Minimum="10" Maximum="1000"
+                                    TickFrequency="10"
+                                    IsSnapToTickEnabled="True"
+                                    Margin="10,0"/>
+                            <TextBlock Grid.Column="2"
+                                       Text="{Binding Settings.MaxNotificationHistoryItems}"
+                                       VerticalAlignment="Center" MinWidth="50"/>
+                        </Grid>
+
+                        <CheckBox Content="Auto-hide notifications"
+                                  IsChecked="{Binding Settings.AutoHideNotifications}"
+                                  Margin="0,10,0,5"/>
+
+                        <CheckBox Content="Enable notification sound"
+                                  IsChecked="{Binding Settings.EnableNotificationSound}"
+                                  Margin="0,0,0,5"/>
+
+                        <CheckBox Content="Enable debug logging"
+                                  IsChecked="{Binding Settings.EnableDebugLogging}"
+                                  Margin="0,0,0,5"/>
+
+                        <CheckBox Content="Enable performance counters"
+                                  IsChecked="{Binding Settings.EnablePerformanceCounters}"
+                                  Margin="0,0,0,10"/>
+                    </StackPanel>
+                </Border>
+
+            </StackPanel>
+        </ScrollViewer>
+
+        <!-- Footer with buttons and status -->
+        <Grid Grid.Row="2" Margin="0,20,0,0">
+            <Grid.RowDefinitions>
+                <RowDefinition Height="Auto"/>
+                <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+            
+            <!-- Status -->
+            <TextBlock Grid.Row="0" 
+                       Text="{Binding StatusMessage}" 
+                       Foreground="#5E81AC" 
+                       Margin="0,0,0,10"
+                       Visibility="{Binding StatusMessage, Converter={x:Static converters:StringToVisibilityConverter.Instance}}"/>
+            
+            <!-- Buttons -->
+            <StackPanel Grid.Row="1" Orientation="Horizontal" HorizontalAlignment="Right">
+                <Button Content="Reset to Defaults" 
+                        Command="{Binding ResetToDefaultsCommand}"
+                        Margin="0,0,10,0" 
+                        Padding="15,8"/>
+                
+                <Button Content="Export Settings" 
+                        Command="{Binding ExportSettingsCommand}"
+                        Margin="0,0,10,0" 
+                        Padding="15,8"/>
+                
+                <Button Content="Import Settings" 
+                        Command="{Binding ImportSettingsCommand}"
+                        Margin="0,0,20,0" 
+                        Padding="15,8"/>
+                
+                <Button Content="Save Settings" 
+                        Command="{Binding SaveSettingsCommand}"
+                        Background="#5E81AC" 
+                        Foreground="White"
+                        Padding="20,8"
+                        FontWeight="SemiBold"/>
+            </StackPanel>
+        </Grid>
+    </Grid>
+</UserControl>

@@ -12,10 +12,6 @@
         Width="1280"
         WindowStartupLocation="CenterScreen">
 
-    <Window.DataContext>
-        <local:MainWindowViewModel/>
-    </Window.DataContext>
-    
     <Grid>
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
@@ -24,16 +20,38 @@
         </Grid.RowDefinitions>
 
         <TabControl Grid.Row="1" Margin="10">
-            <TabItem Header="Process Management">
+            <TabItem Header="🔧 Process Management">
                 <views:ProcessView/>
             </TabItem>
-            <TabItem Header="Power Plans">
+            <TabItem Header="⚡ Power Plans">
                 <views:PowerPlanView/>
+            </TabItem>
+            <TabItem Header="🔗 Process Associations">
+                <views:ProcessPowerPlanAssociationView x:Name="AssociationView"/>
+            </TabItem>
+            <TabItem Header="📋 Activity Logs">
+                <views:LogViewerView/>
+            </TabItem>
+            <TabItem Header="⚙️ Settings">
+                <views:SettingsView/>
             </TabItem>
         </TabControl>
 
         <StatusBar Grid.Row="2" Height="25">
-            <TextBlock Text="{Binding StatusMessage}"/>
+            <StatusBarItem>
+                <TextBlock Text="{Binding StatusMessage}"/>
+            </StatusBarItem>
+            <Separator/>
+            <StatusBarItem>
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="{Binding GameBoostStatusText}"
+                               FontWeight="{Binding IsGameBoostActive, Converter={StaticResource BoolToFontWeightConverter}}"
+                               Foreground="{Binding IsGameBoostActive, Converter={StaticResource BoolToColorConverter}}"/>
+                    <TextBlock Text="🛡️"
+                               Margin="5,0,0,0"
+                               Visibility="{Binding IsGameBoostActive, Converter={StaticResource BoolToVisibilityConverter}}"/>
+                </StackPanel>
+            </StatusBarItem>
         </StatusBar>
     </Grid>
 </Window>

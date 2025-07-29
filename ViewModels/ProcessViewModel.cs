@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ThreadPilot.Models;
 using ThreadPilot.Services;
 
@@ -14,6 +15,9 @@ namespace ThreadPilot.ViewModels
     public partial class ProcessViewModel : BaseViewModel
     {
         private readonly IProcessService _processService;
+        private readonly ICpuTopologyService _cpuTopologyService;
+        private readonly IPowerPlanService _powerPlanService;
+        private readonly ISystemTrayService _systemTrayService;
         private System.Timers.Timer? _refreshTimer;
 
         [ObservableProperty]
@@ -31,94 +35,211 @@ namespace ThreadPilot.ViewModels
         [ObservableProperty]
         private string profileName = string.Empty;
 
-        // CPU Affinity checkbox properties
+        // CPU Topology and Affinity
         [ObservableProperty]
-        private bool isCpu0Selected;
-        [ObservableProperty]
-        private bool isCpu1Selected;
-        [ObservableProperty]
-        private bool isCpu2Selected;
-        [ObservableProperty]
-        private bool isCpu3Selected;
-        [ObservableProperty]
-        private bool isCpu4Selected;
-        [ObservableProperty]
-        private bool isCpu5Selected;
-        [ObservableProperty]
-        private bool isCpu6Selected;
-        [ObservableProperty]
-        private bool isCpu7Selected;
-        [ObservableProperty]
-        private bool isCpu8Selected;
-        [ObservableProperty]
-        private bool isCpu9Selected;
-        [ObservableProperty]
-        private bool isCpu10Selected;
-        [ObservableProperty]
-        private bool isCpu11Selected;
-        [ObservableProperty]
-        private bool isCpu12Selected;
-        [ObservableProperty]
-        private bool isCpu13Selected;
-        [ObservableProperty]
-        private bool isCpu14Selected;
-        [ObservableProperty]
-        private bool isCpu15Selected;
+        private CpuTopologyModel? cpuTopology;
 
-        public ProcessViewModel(IProcessService processService)
+        [ObservableProperty]
+        private ObservableCollection<CpuCoreModel> cpuCores = new();
+
+        [ObservableProperty]
+        private ObservableCollection<CpuAffinityPreset> affinityPresets = new();
+
+        [ObservableProperty]
+        private bool isTopologyDetectionSuccessful = false;
+
+        [ObservableProperty]
+        private string topologyStatus = "Detecting CPU topology...";
+
+        [ObservableProperty]
+        private bool areAdvancedFeaturesAvailable = false;
+
+        [ObservableProperty]
+        private PowerPlanModel? selectedPowerPlan;
+
+        [ObservableProperty]
+        private ObservableCollection<PowerPlanModel> powerPlans = new();
+
+        [ObservableProperty]
+        private bool enableHyperThreading = true;
+
+        public ProcessViewModel(
+            ILogger<ProcessViewModel> logger,
+            IProcessService processService,
+            ICpuTopologyService cpuTopologyService,
+            IPowerPlanService powerPlanService,
+            ISystemTrayService systemTrayService,
+            IEnhancedLoggingService? enhancedLoggingService = null)
+            : base(logger, enhancedLoggingService)
         {
-            _processService = processService;
+            _processService = processService ?? throw new ArgumentNullException(nameof(processService));
+            _cpuTopologyService = cpuTopologyService ?? throw new ArgumentNullException(nameof(cpuTopologyService));
+            _powerPlanService = powerPlanService ?? throw new ArgumentNullException(nameof(powerPlanService));
+            _systemTrayService = systemTrayService ?? throw new ArgumentNullException(nameof(systemTrayService));
+
+            // Subscribe to topology detection events
+            _cpuTopologyService.TopologyDetected += OnTopologyDetected;
+
+            // Subscribe to system tray events
+            _systemTrayService.QuickApplyRequested += OnTrayQuickApplyRequested;
+
             SetupRefreshTimer();
+            _ = InitializeAsync();
+        }
+
+        public override async Task InitializeAsync()
+        {
+            try
+            {
+                SetStatus("Initializing CPU topology and power plans...");
+
+                // Initialize CPU topology
+                await _cpuTopologyService.DetectTopologyAsync();
+
+                // Load power plans
+                await LoadPowerPlansAsync();
+
+                // Load processes automatically on startup (Bug #8 fix)
+                await LoadProcessesCommand.ExecuteAsync(null);
+
+                // Start refresh timer for real-time updates
+                _refreshTimer?.Start();
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Failed to initialize: {ex.Message}", false);
+            }
+        }
+
+        private async Task LoadPowerPlansAsync()
+        {
+            try
+            {
+                var plans = await _powerPlanService.GetPowerPlansAsync();
+                PowerPlans.Clear();
+                foreach (var plan in plans)
+                {
+                    PowerPlans.Add(plan);
+                }
+
+                // Set current active power plan as selected
+                var activePlan = await _powerPlanService.GetActivePowerPlan();
+                SelectedPowerPlan = PowerPlans.FirstOrDefault(p => p.Guid == activePlan?.Guid);
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Failed to load power plans: {ex.Message}", false);
+            }
         }
 
         partial void OnSelectedProcessChanged(ProcessModel? value)
         {
-            if (value != null)
+            if (value != null && CpuTopology != null)
             {
-                UpdateAffinityCheckboxes(value.ProcessorAffinity);
+                // Refresh process info to get current affinity
+                _ = Task.Run(async () =>
+                {
+                    try
+                    {
+                        await _processService.RefreshProcessInfo(value);
+                        // Update UI on main thread
+                        System.Windows.Application.Current.Dispatcher.Invoke(() =>
+                        {
+                            UpdateCoreSelections(value.ProcessorAffinity);
+                        });
+                    }
+                    catch (Exception ex)
+                    {
+                        Logger.LogWarning(ex, "Failed to refresh process info for {ProcessName}", value.Name);
+                    }
+                });
+            }
+
+            // Update system tray context menu
+            _systemTrayService.UpdateContextMenu(value?.Name, value != null);
+        }
+
+        private async void OnTrayQuickApplyRequested(object? sender, EventArgs e)
+        {
+            try
+            {
+                await QuickApplyAffinityAndPowerPlanCommand.ExecuteAsync(null);
+                _systemTrayService.ShowBalloonTip("ThreadPilot",
+                    $"Settings applied to {SelectedProcess?.Name ?? "selected process"}", 2000);
+            }
+            catch (Exception ex)
+            {
+                _systemTrayService.ShowBalloonTip("ThreadPilot Error",
+                    $"Failed to apply settings: {ex.Message}", 3000);
             }
         }
 
-        private void UpdateAffinityCheckboxes(long affinityMask)
+        private void OnTopologyDetected(object? sender, CpuTopologyDetectedEventArgs e)
         {
-            IsCpu0Selected = (affinityMask & 1L) != 0;
-            IsCpu1Selected = (affinityMask & 2L) != 0;
-            IsCpu2Selected = (affinityMask & 4L) != 0;
-            IsCpu3Selected = (affinityMask & 8L) != 0;
-            IsCpu4Selected = (affinityMask & 16L) != 0;
-            IsCpu5Selected = (affinityMask & 32L) != 0;
-            IsCpu6Selected = (affinityMask & 64L) != 0;
-            IsCpu7Selected = (affinityMask & 128L) != 0;
-            IsCpu8Selected = (affinityMask & 256L) != 0;
-            IsCpu9Selected = (affinityMask & 512L) != 0;
-            IsCpu10Selected = (affinityMask & 1024L) != 0;
-            IsCpu11Selected = (affinityMask & 2048L) != 0;
-            IsCpu12Selected = (affinityMask & 4096L) != 0;
-            IsCpu13Selected = (affinityMask & 8192L) != 0;
-            IsCpu14Selected = (affinityMask & 16384L) != 0;
-            IsCpu15Selected = (affinityMask & 32768L) != 0;
+            CpuTopology = e.Topology;
+            IsTopologyDetectionSuccessful = e.DetectionSuccessful;
+
+            if (e.DetectionSuccessful)
+            {
+                TopologyStatus = $"Detected: {e.Topology.TotalLogicalCores} logical cores, " +
+                               $"{e.Topology.TotalPhysicalCores} physical cores";
+                AreAdvancedFeaturesAvailable = e.Topology.HasIntelHybrid || e.Topology.HasAmdCcd || e.Topology.HasHyperThreading;
+            }
+            else
+            {
+                TopologyStatus = $"Detection failed: {e.ErrorMessage ?? "Unknown error"}";
+                AreAdvancedFeaturesAvailable = false;
+            }
+
+            UpdateCpuCores();
+            UpdateAffinityPresets();
+        }
+
+        private void UpdateCpuCores()
+        {
+            if (CpuTopology == null) return;
+
+            CpuCores.Clear();
+            foreach (var core in CpuTopology.LogicalCores)
+            {
+                CpuCores.Add(core);
+            }
+        }
+
+        private void UpdateAffinityPresets()
+        {
+            AffinityPresets.Clear();
+            var presets = _cpuTopologyService.GetAffinityPresets();
+            foreach (var preset in presets)
+            {
+                AffinityPresets.Add(preset);
+            }
+        }
+
+        private void UpdateCoreSelections(long affinityMask)
+        {
+            if (CpuTopology == null) return;
+
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = (affinityMask & core.AffinityMask) != 0;
+            }
         }
 
         private long CalculateAffinityMask()
         {
-            long mask = 0;
-            if (IsCpu0Selected) mask |= 1L;
-            if (IsCpu1Selected) mask |= 2L;
-            if (IsCpu2Selected) mask |= 4L;
-            if (IsCpu3Selected) mask |= 8L;
-            if (IsCpu4Selected) mask |= 16L;
-            if (IsCpu5Selected) mask |= 32L;
-            if (IsCpu6Selected) mask |= 64L;
-            if (IsCpu7Selected) mask |= 128L;
-            if (IsCpu8Selected) mask |= 256L;
-            if (IsCpu9Selected) mask |= 512L;
-            if (IsCpu10Selected) mask |= 1024L;
-            if (IsCpu11Selected) mask |= 2048L;
-            if (IsCpu12Selected) mask |= 4096L;
-            if (IsCpu13Selected) mask |= 8192L;
-            if (IsCpu14Selected) mask |= 16384L;
-            if (IsCpu15Selected) mask |= 32768L;
-            return mask;
+            if (CpuTopology == null) return 0;
+
+            var selectedCores = CpuCores.Where(core => core.IsSelected);
+
+            // If HyperThreading is disabled, exclude HT siblings
+            if (!EnableHyperThreading && CpuTopology.HasHyperThreading)
+            {
+                selectedCores = selectedCores.Where(core => !core.IsHyperThreaded || core.HyperThreadSibling == null ||
+                    core.LogicalCoreId < core.HyperThreadSibling);
+            }
+
+            return selectedCores.Aggregate(0L, (mask, core) => mask | core.AffinityMask);
         }
 
         [RelayCommand]
@@ -186,13 +307,200 @@ namespace ThreadPilot.ViewModels
             try
             {
                 var affinityMask = CalculateAffinityMask();
+                if (affinityMask == 0)
+                {
+                    SetStatus("Please select at least one CPU core", false);
+                    return;
+                }
+
                 SetStatus($"Setting affinity for {SelectedProcess.Name}...");
                 await _processService.SetProcessorAffinity(SelectedProcess, affinityMask);
-                ClearStatus();
+
+                // Refresh the process to get updated affinity from system
+                await _processService.RefreshProcessInfo(SelectedProcess);
+
+                // Update UI to reflect the actual system affinity
+                UpdateCoreSelections(SelectedProcess.ProcessorAffinity);
+
+                // Notify UI of changes
+                OnPropertyChanged(nameof(SelectedProcess));
+                OnPropertyChanged(nameof(CpuCores));
+
+                SetStatus($"Affinity set successfully for {SelectedProcess.Name}");
             }
             catch (Exception ex)
             {
                 SetStatus($"Error setting affinity: {ex.Message}", false);
+            }
+        }
+
+        [RelayCommand]
+        private void ApplyAffinityPreset(CpuAffinityPreset preset)
+        {
+            if (preset == null || !preset.IsAvailable || CpuTopology == null) return;
+
+            // Clear all selections first
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = false;
+            }
+
+            // Apply preset mask
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = (preset.AffinityMask & core.AffinityMask) != 0;
+            }
+
+            // Notify UI of changes
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus($"Applied preset: {preset.Name}");
+        }
+
+        [RelayCommand]
+        private void SelectAllCores()
+        {
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = true;
+            }
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus("Selected all CPU cores");
+        }
+
+        [RelayCommand]
+        private void SelectPhysicalCoresOnly()
+        {
+            if (CpuTopology == null) return;
+
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = false;
+            }
+
+            foreach (var physicalCore in CpuTopology.PhysicalCores)
+            {
+                var coreModel = CpuCores.FirstOrDefault(c => c.LogicalCoreId == physicalCore.LogicalCoreId);
+                if (coreModel != null)
+                {
+                    coreModel.IsSelected = true;
+                }
+            }
+
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus("Selected physical cores only (no HyperThreading)");
+        }
+
+        [RelayCommand]
+        private void SelectPerformanceCores()
+        {
+            if (CpuTopology == null || !CpuTopology.HasIntelHybrid) return;
+
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = core.CoreType == CpuCoreType.PerformanceCore;
+            }
+
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus("Selected Intel Performance cores (P-cores)");
+        }
+
+        [RelayCommand]
+        private void SelectEfficiencyCores()
+        {
+            if (CpuTopology == null || !CpuTopology.HasIntelHybrid) return;
+
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = core.CoreType == CpuCoreType.EfficiencyCore;
+            }
+
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus("Selected Intel Efficiency cores (E-cores)");
+        }
+
+        [RelayCommand]
+        private void SelectCcdCores(int ccdId)
+        {
+            if (CpuTopology == null || !CpuTopology.HasAmdCcd) return;
+
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = core.CcdId == ccdId;
+            }
+
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus($"Selected AMD CCD {ccdId} cores");
+        }
+
+        [RelayCommand]
+        private void ClearCoreSelection()
+        {
+            foreach (var core in CpuCores)
+            {
+                core.IsSelected = false;
+            }
+            OnPropertyChanged(nameof(CpuCores));
+            SetStatus("Cleared CPU core selection");
+        }
+
+        [RelayCommand]
+        private async Task QuickApplyAffinityAndPowerPlan()
+        {
+            if (SelectedProcess == null) return;
+
+            try
+            {
+                SetStatus($"Applying settings to {SelectedProcess.Name}...");
+
+                // Apply CPU affinity
+                var affinityMask = CalculateAffinityMask();
+                if (affinityMask > 0)
+                {
+                    await _processService.SetProcessorAffinity(SelectedProcess, affinityMask);
+                }
+
+                // Apply power plan if selected
+                if (SelectedPowerPlan != null)
+                {
+                    await _powerPlanService.SetActivePowerPlan(SelectedPowerPlan);
+                }
+
+                SetStatus($"Settings applied successfully to {SelectedProcess.Name}");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error applying settings: {ex.Message}", false);
+            }
+        }
+
+        [RelayCommand]
+        private async Task RefreshTopology()
+        {
+            try
+            {
+                SetStatus("Refreshing CPU topology...");
+                await _cpuTopologyService.RefreshTopologyAsync();
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error refreshing topology: {ex.Message}", false);
+            }
+        }
+
+        [RelayCommand]
+        private async Task SetPowerPlan()
+        {
+            if (SelectedPowerPlan == null) return;
+
+            try
+            {
+                SetStatus($"Setting power plan to {SelectedPowerPlan.Name}...");
+                await _powerPlanService.SetActivePowerPlan(SelectedPowerPlan);
+                SetStatus($"Power plan set to {SelectedPowerPlan.Name}");
+            }
+            catch (Exception ex)
+            {
+                SetStatus($"Error setting power plan: {ex.Message}", false);
             }
         }
 
@@ -251,7 +559,19 @@ namespace ThreadPilot.ViewModels
         {
             _refreshTimer = new System.Timers.Timer(2000); // 2 second refresh
             _refreshTimer.Elapsed += async (s, e) => await RefreshProcessesCommand.ExecuteAsync(null);
-            _refreshTimer.Start();
+            // Don't start automatically - only start when needed
+        }
+
+        public void PauseRefresh()
+        {
+            _refreshTimer?.Stop();
+            SetStatus("Process monitoring paused (minimized)");
+        }
+
+        public void ResumeRefresh()
+        {
+            _refreshTimer?.Start();
+            SetStatus("Process monitoring resumed");
         }
 
         partial void OnSearchTextChanged(string value)

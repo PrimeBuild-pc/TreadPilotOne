@@ -22,6 +22,7 @@ namespace ThreadPilot.Models
                         ProcessorAffinity = (long)value.ProcessorAffinity;
                         Priority = value.PriorityClass;
                         MemoryUsage = value.WorkingSet64;
+                        ExecutablePath = value.MainModule?.FileName ?? string.Empty;
                     }
                     catch (Exception)
                     {
@@ -36,6 +37,9 @@ namespace ThreadPilot.Models
 
         [ObservableProperty]
         private string name = string.Empty;
+
+        [ObservableProperty]
+        private string executablePath = string.Empty;
 
         [ObservableProperty]
         private double cpuUsage;

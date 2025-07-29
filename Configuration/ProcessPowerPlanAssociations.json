@@ -1,0 +1,22 @@
+{
+  "DefaultPowerPlanGuid": "",
+  "DefaultPowerPlanName": "",
+  "IsEventBasedMonitoringEnabled": true,
+  "IsFallbackPollingEnabled": true,
+  "PollingIntervalSeconds": 5,
+  "PreventDuplicatePowerPlanChanges": true,
+  "PowerPlanChangeDelayMs": 1000,
+  "Associations": [
+    {
+      "Id": "sample-gaming-association",
+      "ExecutableName": "game.exe",
+      "ExecutablePath": "",
+      "PowerPlanGuid": "8c5e7fda-e8bf-4a96-9a85-a6e23a8c635c",
+      "PowerPlanName": "High performance",
+      "MatchByPath": false,
+      "Priority": 10,
+      "Description": "Sample gaming association - switch to high performance for games",
+      "IsEnabled": false
+    }
+  ]
+}

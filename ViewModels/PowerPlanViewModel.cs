@@ -5,8 +5,10 @@ using System.Threading.Tasks;
 using System.Windows.Input;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using Microsoft.Extensions.Logging;
 using ThreadPilot.Models;
 using ThreadPilot.Services;
+using ThreadPilot.ViewModels;
 
 namespace ThreadPilot.ViewModels
 {
@@ -30,7 +32,11 @@ namespace ThreadPilot.ViewModels
         [ObservableProperty]
         private PowerPlanModel? activePowerPlan;
 
-        public PowerPlanViewModel(IPowerPlanService powerPlanService)
+        public PowerPlanViewModel(
+            ILogger<PowerPlanViewModel> logger,
+            IPowerPlanService powerPlanService,
+            IEnhancedLoggingService? enhancedLoggingService = null)
+            : base(logger, enhancedLoggingService)
         {
             _powerPlanService = powerPlanService;
             SetupRefreshTimer();

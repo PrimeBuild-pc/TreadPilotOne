@@ -1,0 +1,233 @@
+<UserControl x:Class="ThreadPilot.Views.ProcessPowerPlanAssociationView"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:converters="clr-namespace:ThreadPilot.Converters"
+             xmlns:local="clr-namespace:ThreadPilot.Views"
+             mc:Ignorable="d"
+             d:DesignHeight="800" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:InverseBooleanConverter x:Key="InverseBoolConverter"/>
+    </UserControl.Resources>
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <!-- Header -->
+        <Border Grid.Row="0" Background="#F0F0F0" Padding="10" BorderBrush="#D0D0D0" BorderThickness="0,0,0,1">
+            <StackPanel>
+                <TextBlock Text="Process-Power Plan Associations"
+                          FontSize="18" FontWeight="Bold"
+                          Foreground="#333333" Margin="0,0,0,5"/>
+                <TextBlock Text="Configure automatic power plan switching based on running processes"
+                          FontSize="12" Foreground="#666666"/>
+            </StackPanel>
+        </Border>
+
+        <!-- Main Content -->
+        <TabControl Grid.Row="1" Background="White" BorderThickness="0">
+
+            <!-- Associations Tab -->
+            <TabItem Header="🔗 Process Associations">
+                <Grid Margin="10">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="2*"/>
+                        <ColumnDefinition Width="10"/>
+                        <ColumnDefinition Width="*"/>
+                    </Grid.ColumnDefinitions>
+
+                    <!-- Associations List -->
+                    <GroupBox Grid.Column="0" Header="📋 Current Associations">
+                        <Grid>
+                            <Grid.RowDefinitions>
+                                <RowDefinition Height="*"/>
+                                <RowDefinition Height="Auto"/>
+                            </Grid.RowDefinitions>
+
+                            <DataGrid Grid.Row="0"
+                                     ItemsSource="{Binding Associations}"
+                                     SelectedItem="{Binding SelectedAssociation}"
+                                     AutoGenerateColumns="False"
+                                     CanUserAddRows="False"
+                                     GridLinesVisibility="Horizontal"
+                                     HeadersVisibility="Column"
+                                     BorderThickness="1">
+                                <DataGrid.Columns>
+                                    <DataGridCheckBoxColumn Header="Enabled" 
+                                                           Binding="{Binding IsEnabled}" 
+                                                           Width="60"/>
+                                    <DataGridTextColumn Header="Executable" 
+                                                       Binding="{Binding ExecutableName}" 
+                                                       Width="150"/>
+                                    <DataGridTextColumn Header="Power Plan" 
+                                                       Binding="{Binding PowerPlanName}" 
+                                                       Width="150"/>
+                                    <DataGridTextColumn Header="Priority" 
+                                                       Binding="{Binding Priority}" 
+                                                       Width="60"/>
+                                    <DataGridCheckBoxColumn Header="Match by Path" 
+                                                           Binding="{Binding MatchByPath}" 
+                                                           Width="100"/>
+                                    <DataGridTextColumn Header="Description" 
+                                                       Binding="{Binding Description}" 
+                                                       Width="*"/>
+                                </DataGrid.Columns>
+                            </DataGrid>
+
+                            <StackPanel Grid.Row="1" Orientation="Horizontal" 
+                                       HorizontalAlignment="Right" Margin="0,10,0,0">
+                                <Button Content="Update"
+                                       Command="{Binding UpdateAssociationCommand}"
+                                       Margin="0,0,5,0" Padding="10,5"
+                                       ToolTip="Update the selected association"/>
+                                <Button Content="Remove"
+                                       Command="{Binding RemoveAssociationCommand}"
+                                       Padding="10,5"
+                                       ToolTip="Remove the selected association"/>
+                            </StackPanel>
+                        </Grid>
+                    </GroupBox>
+
+                    <!-- Add New Association -->
+                    <GroupBox Grid.Column="2" Header="Add New Association">
+                        <StackPanel>
+                            <TextBlock Text="Executable Name:" Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding NewExecutableName}"
+                                    Padding="5" Margin="0,0,0,10"
+                                    ToolTip="Enter the executable name (e.g., game.exe)"/>
+
+                            <TextBlock Text="Executable Path (optional):" Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding NewExecutablePath}"
+                                    Padding="5" Margin="0,0,0,10"
+                                    ToolTip="Enter the full path to the executable (optional)"/>
+
+                            <CheckBox Content="Match by Path"
+                                     IsChecked="{Binding MatchByPath}"
+                                     Margin="0,0,0,10"
+                                     ToolTip="Match processes by full path instead of just executable name"/>
+
+                            <TextBlock Text="Power Plan:" Margin="0,0,0,5"/>
+                            <ComboBox ItemsSource="{Binding AvailablePowerPlans}"
+                                     SelectedItem="{Binding SelectedPowerPlan}"
+                                     DisplayMemberPath="Name"
+                                     Padding="5" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Priority:" Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding Priority}"
+                                    Padding="5" Margin="0,0,0,10"/>
+
+                            <TextBlock Text="Description:" Margin="0,0,0,5"/>
+                            <TextBox Text="{Binding Description}"
+                                    Padding="5" Margin="0,0,0,15"/>
+
+                            <Button Content="Add Association"
+                                   Command="{Binding AddAssociationCommand}"
+                                   Padding="10,8"/>
+
+                            <Separator Margin="0,15,0,15"/>
+
+                            <TextBlock Text="Quick Add from Running Processes:"
+                                      FontWeight="Bold" Margin="0,0,0,10"/>
+
+                            <ComboBox ItemsSource="{Binding RunningProcesses}"
+                                     SelectedItem="{Binding SelectedProcess}"
+                                     DisplayMemberPath="Name"
+                                     Padding="5" Margin="0,0,0,10"/>
+
+                            <Button Content="Use Selected Process"
+                                   Command="{Binding UseSelectedProcessForAssociationCommand}"
+                                   Padding="10,5"/>
+                        </StackPanel>
+                    </GroupBox>
+                </Grid>
+            </TabItem>
+
+            <!-- Settings Tab -->
+            <TabItem Header="⚙️ Configuration">
+                <ScrollViewer Margin="10">
+                    <StackPanel>
+                        <!-- Service Control -->
+                        <GroupBox Header="Service Control" Margin="0,0,0,15">
+                            <StackPanel>
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Status: " VerticalAlignment="Center"/>
+                                    <TextBlock Text="{Binding ServiceStatus}"
+                                              Foreground="{Binding IsServiceRunning, Converter={StaticResource BoolToColorConverter}}"
+                                              FontWeight="Bold" VerticalAlignment="Center"/>
+                                </StackPanel>
+
+                                <StackPanel Orientation="Horizontal">
+                                    <Button Content="Start Monitoring"
+                                           Command="{Binding StartMonitoringCommand}"
+                                           IsEnabled="{Binding IsServiceRunning, Converter={StaticResource InverseBoolConverter}}"
+                                           Padding="15,8" Margin="0,0,10,0"/>
+                                    <Button Content="Stop Monitoring"
+                                           Command="{Binding StopMonitoringCommand}"
+                                           IsEnabled="{Binding IsServiceRunning}"
+                                           Padding="15,8"/>
+                                </StackPanel>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Default Power Plan -->
+                        <GroupBox Header="Default Power Plan" Margin="0,0,0,15">
+                            <StackPanel>
+                                <TextBlock Text="Power plan to use when no associated processes are running:"
+                                          Foreground="#666666" Margin="0,0,0,10"/>
+
+                                <ComboBox ItemsSource="{Binding AvailablePowerPlans}"
+                                         SelectedItem="{Binding DefaultPowerPlan}"
+                                         DisplayMemberPath="Name"
+                                         Padding="5" Margin="0,0,0,10"/>
+
+                                <Button Content="Set Default Power Plan"
+                                       Command="{Binding SetDefaultPowerPlanCommand}"
+                                       Padding="10,5" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </GroupBox>
+
+                        <!-- Monitoring Settings -->
+                        <GroupBox Header="Monitoring Settings" Margin="0,0,0,15">
+                            <StackPanel>
+                                <CheckBox Content="Enable Event-Based Monitoring (WMI)"
+                                         IsChecked="{Binding IsEventBasedMonitoringEnabled}"
+                                         Margin="0,0,0,10"/>
+
+                                <CheckBox Content="Enable Fallback Polling"
+                                         IsChecked="{Binding IsFallbackPollingEnabled}"
+                                         Margin="0,0,0,10"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
+                                    <TextBlock Text="Polling Interval (seconds): "
+                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox Text="{Binding PollingIntervalSeconds}"
+                                            Width="60" Padding="5"/>
+                                </StackPanel>
+
+                                <CheckBox Content="Prevent Duplicate Power Plan Changes"
+                                         IsChecked="{Binding PreventDuplicatePowerPlanChanges}"
+                                         Margin="0,0,0,10"/>
+
+                                <StackPanel Orientation="Horizontal" Margin="0,0,0,15">
+                                    <TextBlock Text="Power Plan Change Delay (ms): "
+                                              VerticalAlignment="Center" Margin="0,0,10,0"/>
+                                    <TextBox Text="{Binding PowerPlanChangeDelayMs}"
+                                            Width="80" Padding="5"/>
+                                </StackPanel>
+
+                                <Button Content="Save Configuration"
+                                       Command="{Binding SaveConfigurationCommand}"
+                                       Padding="15,8" HorizontalAlignment="Left"/>
+                            </StackPanel>
+                        </GroupBox>
+                    </StackPanel>
+                </ScrollViewer>
+            </TabItem>
+        </TabControl>
+    </Grid>
+</UserControl>

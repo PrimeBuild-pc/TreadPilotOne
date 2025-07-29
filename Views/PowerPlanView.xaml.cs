@@ -4,7 +4,7 @@ using ThreadPilot.ViewModels;
 
 namespace ThreadPilot.Views
 {
-    public partial class PowerPlanView : UserControl
+    public partial class PowerPlanView : System.Windows.Controls.UserControl
     {
         public PowerPlanView()
         {

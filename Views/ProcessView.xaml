@@ -1,12 +1,21 @@
 <UserControl x:Class="ThreadPilot.Views.ProcessView"
              xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
              xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
-             xmlns:d="http://schemas.microsoft.com/expression/blend/2008" 
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:local="clr-namespace:ThreadPilot.Views"
              xmlns:helpers="clr-namespace:ThreadPilot.Helpers"
-             mc:Ignorable="d" 
+             xmlns:converters="clr-namespace:ThreadPilot.Converters"
+             mc:Ignorable="d"
              d:DesignHeight="650" d:DesignWidth="1200">
+
+    <UserControl.Resources>
+        <converters:CoreTypeToColorConverter x:Key="CoreTypeToColorConverter"/>
+        <converters:BoolToColorConverter x:Key="BoolToColorConverter"/>
+        <converters:BoolToVisibilityConverter x:Key="BoolToVisibilityConverter"/>
+        <converters:AffinityMaskConverter x:Key="AffinityMaskConverter"/>
+        <converters:BytesToMbConverter x:Key="BytesToMbConverter"/>
+    </UserControl.Resources>
     
     <Grid Margin="10">
         <Grid.RowDefinitions>
@@ -16,14 +25,19 @@
         </Grid.RowDefinitions>
 
         <!-- Search and Refresh Controls -->
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Margin="0,0,0,10">
-            <TextBox Width="200" 
-                     Margin="0,0,10,0"
-                     Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"/>
-            <Button Command="{Binding LoadProcessesCommand}"
-                    Content="Refresh"
-                    Padding="10,5"/>
-        </StackPanel>
+        <GroupBox Grid.Row="0" Header="🔍 Process Search &amp; Control" Margin="0,0,0,10">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <TextBox Width="200"
+                         Margin="0,0,10,0"
+                         Text="{Binding SearchText, UpdateSourceTrigger=PropertyChanged}"
+                         ToolTip="Search processes by name"
+                         VerticalAlignment="Center"/>
+                <Button Command="{Binding LoadProcessesCommand}"
+                        Content="🔄 Refresh"
+                        Padding="10,5"
+                        ToolTip="Refresh the process list"/>
+            </StackPanel>
+        </GroupBox>
 
         <!-- Process List -->
         <DataGrid Grid.Row="1" 
@@ -62,6 +76,7 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
                 </Grid.ColumnDefinitions>
 
                 <!-- Priority Controls -->
@@ -79,42 +94,158 @@
                         <Button Command="{Binding SetPriorityCommand}"
                                 CommandParameter="{Binding SelectedProcess.Priority}"
                                 Content="Set Priority"
-                                Padding="10,5"/>
+                                Padding="10,5"
+                                ToolTip="Apply the selected priority to the process"/>
                     </StackPanel>
                 </GroupBox>
 
-                <!-- Affinity Controls -->
-                <GroupBox Grid.Column="1" Header="CPU Affinity" Margin="5,0,0,0">
+                <!-- Power Plan Selection -->
+                <GroupBox Grid.Column="1" Header="Power Plan" Margin="5,0,5,0">
+                    <StackPanel Margin="5">
+                        <ComboBox ItemsSource="{Binding PowerPlans}"
+                                  SelectedItem="{Binding SelectedPowerPlan}"
+                                  DisplayMemberPath="Name"
+                                  Margin="0,0,0,5"/>
+                        <Button Command="{Binding SetPowerPlanCommand}"
+                                Content="Set Power Plan"
+                                Padding="10,5"
+                                ToolTip="Apply the selected power plan to the system"/>
+                    </StackPanel>
+                </GroupBox>
+
+                <!-- Advanced CPU Affinity Controls -->
+                <GroupBox Grid.Column="2" Header="Advanced CPU Affinity" Margin="5,0,0,0">
                     <Grid Margin="5">
                         <Grid.RowDefinitions>
                             <RowDefinition Height="Auto"/>
                             <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
+                            <RowDefinition Height="Auto"/>
                         </Grid.RowDefinitions>
 
-                        <WrapPanel x:Name="CpuAffinityPanel" Grid.Row="0">
-                            <CheckBox Content="CPU 0" Tag="1" Margin="5" IsChecked="{Binding IsCpu0Selected}"/>
-                            <CheckBox Content="CPU 1" Tag="2" Margin="5" IsChecked="{Binding IsCpu1Selected}"/>
-                            <CheckBox Content="CPU 2" Tag="4" Margin="5" IsChecked="{Binding IsCpu2Selected}"/>
-                            <CheckBox Content="CPU 3" Tag="8" Margin="5" IsChecked="{Binding IsCpu3Selected}"/>
-                            <CheckBox Content="CPU 4" Tag="16" Margin="5" IsChecked="{Binding IsCpu4Selected}"/>
-                            <CheckBox Content="CPU 5" Tag="32" Margin="5" IsChecked="{Binding IsCpu5Selected}"/>
-                            <CheckBox Content="CPU 6" Tag="64" Margin="5" IsChecked="{Binding IsCpu6Selected}"/>
-                            <CheckBox Content="CPU 7" Tag="128" Margin="5" IsChecked="{Binding IsCpu7Selected}"/>
-                            <CheckBox Content="CPU 8" Tag="256" Margin="5" IsChecked="{Binding IsCpu8Selected}"/>
-                            <CheckBox Content="CPU 9" Tag="512" Margin="5" IsChecked="{Binding IsCpu9Selected}"/>
-                            <CheckBox Content="CPU 10" Tag="1024" Margin="5" IsChecked="{Binding IsCpu10Selected}"/>
-                            <CheckBox Content="CPU 11" Tag="2048" Margin="5" IsChecked="{Binding IsCpu11Selected}"/>
-                            <CheckBox Content="CPU 12" Tag="4096" Margin="5" IsChecked="{Binding IsCpu12Selected}"/>
-                            <CheckBox Content="CPU 13" Tag="8192" Margin="5" IsChecked="{Binding IsCpu13Selected}"/>
-                            <CheckBox Content="CPU 14" Tag="16384" Margin="5" IsChecked="{Binding IsCpu14Selected}"/>
-                            <CheckBox Content="CPU 15" Tag="32768" Margin="5" IsChecked="{Binding IsCpu15Selected}"/>
-                        </WrapPanel>
+                        <!-- Topology Status and HyperThreading Control -->
+                        <StackPanel Grid.Row="0" Orientation="Vertical" Margin="0,0,0,5">
+                            <TextBlock Text="{Binding TopologyStatus}"
+                                       FontSize="10"
+                                       Foreground="{Binding IsTopologyDetectionSuccessful, Converter={StaticResource BoolToColorConverter}}"/>
+                            <CheckBox Content="Enable HyperThreading"
+                                      IsChecked="{Binding EnableHyperThreading}"
+                                      IsEnabled="{Binding CpuTopology.HasHyperThreading}"
+                                      FontSize="10"
+                                      Margin="0,2,0,0"
+                                      ToolTip="Include HyperThreading siblings in affinity calculations"/>
+                        </StackPanel>
 
-                        <Button Grid.Row="1" 
-                                Command="{Binding SetAffinityCommand}"
-                                Content="Set Affinity"
-                                Margin="0,5,0,0"
-                                Padding="10,5"/>
+                        <!-- Quick Selection Presets -->
+                        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,5">
+                            <Button Command="{Binding SelectAllCoresCommand}"
+                                    Content="All"
+                                    Padding="5,2"
+                                    Margin="0,0,3,0"
+                                    FontSize="10"
+                                    ToolTip="Select all CPU cores"/>
+                            <Button Command="{Binding SelectPhysicalCoresOnlyCommand}"
+                                    Content="Physical"
+                                    Padding="5,2"
+                                    Margin="0,0,3,0"
+                                    FontSize="10"
+                                    IsEnabled="{Binding CpuTopology.HasHyperThreading}"
+                                    ToolTip="Select only physical cores (no hyperthreading)"/>
+                            <Button Command="{Binding SelectPerformanceCoresCommand}"
+                                    Content="P-Cores"
+                                    Padding="5,2"
+                                    Margin="0,0,3,0"
+                                    FontSize="10"
+                                    IsEnabled="{Binding CpuTopology.HasIntelHybrid}"
+                                    ToolTip="Select performance cores (Intel hybrid architecture)"/>
+                            <Button Command="{Binding SelectEfficiencyCoresCommand}"
+                                    Content="E-Cores"
+                                    Padding="5,2"
+                                    Margin="0,0,3,0"
+                                    FontSize="10"
+                                    IsEnabled="{Binding CpuTopology.HasIntelHybrid}"
+                                    ToolTip="Select efficiency cores (Intel hybrid architecture)"/>
+                            <Button Command="{Binding ClearCoreSelectionCommand}"
+                                    Content="Clear"
+                                    Padding="5,2"
+                                    Margin="0,0,3,0"
+                                    FontSize="10"
+                                    ToolTip="Clear all core selections"/>
+                        </StackPanel>
+
+                        <!-- CCD Selection (AMD) -->
+                        <ItemsControl Grid.Row="2"
+                                      ItemsSource="{Binding CpuTopology.AvailableCcds}"
+                                      Visibility="{Binding CpuTopology.HasAmdCcd, Converter={StaticResource BoolToVisibilityConverter}}"
+                                      Margin="0,0,0,5">
+                            <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                    <StackPanel Orientation="Horizontal"/>
+                                </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                                <DataTemplate>
+                                    <Button Command="{Binding DataContext.SelectCcdCoresCommand, RelativeSource={RelativeSource AncestorType=UserControl}}"
+                                            CommandParameter="{Binding}"
+                                            Content="{Binding StringFormat=CCD {0}}"
+                                            Padding="5,2"
+                                            Margin="0,0,3,0"
+                                            FontSize="10"/>
+                                </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                        </ItemsControl>
+
+                        <!-- CPU Core Grid -->
+                        <ScrollViewer Grid.Row="3"
+                                      MaxHeight="120"
+                                      VerticalScrollBarVisibility="Auto"
+                                      HorizontalScrollBarVisibility="Disabled"
+                                      Margin="0,0,0,5">
+                            <ItemsControl ItemsSource="{Binding CpuCores}">
+                                <ItemsControl.ItemsPanel>
+                                    <ItemsPanelTemplate>
+                                        <WrapPanel Orientation="Horizontal"/>
+                                    </ItemsPanelTemplate>
+                                </ItemsControl.ItemsPanel>
+                                <ItemsControl.ItemTemplate>
+                                    <DataTemplate>
+                                        <CheckBox Content="{Binding Label}"
+                                                  IsChecked="{Binding IsSelected}"
+                                                  IsEnabled="{Binding IsEnabled}"
+                                                  Margin="2"
+                                                  FontSize="9"
+                                                  ToolTip="{Binding StringFormat=Core {0}: {1}}">
+                                            <CheckBox.Foreground>
+                                                <MultiBinding Converter="{StaticResource CoreTypeToColorConverter}">
+                                                    <Binding Path="CoreType"/>
+                                                    <Binding Path="IsHyperThreaded"/>
+                                                </MultiBinding>
+                                            </CheckBox.Foreground>
+                                        </CheckBox>
+                                    </DataTemplate>
+                                </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                        </ScrollViewer>
+
+                        <!-- Action Buttons -->
+                        <StackPanel Grid.Row="4" Orientation="Horizontal">
+                            <Button Command="{Binding SetAffinityCommand}"
+                                    Content="Set Affinity"
+                                    Padding="10,5"
+                                    Margin="0,0,5,0"
+                                    ToolTip="Apply the selected CPU core affinity to the process"/>
+                            <Button Command="{Binding QuickApplyAffinityAndPowerPlanCommand}"
+                                    Content="Quick Apply"
+                                    Padding="10,5"
+                                    Margin="0,0,5,0"
+                                    ToolTip="Apply both CPU affinity and power plan"/>
+                            <Button Command="{Binding RefreshTopologyCommand}"
+                                    Content="Refresh"
+                                    Padding="5,5"
+                                    FontSize="10"
+                                    ToolTip="Refresh CPU topology detection"/>
+                        </StackPanel>
                     </Grid>
                 </GroupBox>
             </Grid>

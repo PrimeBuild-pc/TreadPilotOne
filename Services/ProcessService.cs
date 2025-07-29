@@ -26,19 +26,45 @@ namespace ThreadPilot.Services
             return await Task.Run(() =>
             {
                 var processes = Process.GetProcesses()
-                    .Select(p => new ProcessModel
-                    {
-                        Process = p,
-                        ProcessId = p.Id,
-                        Name = p.ProcessName,
-                        MemoryUsage = p.WorkingSet64,
-                        Priority = p.PriorityClass,
-                        ProcessorAffinity = (long)p.ProcessorAffinity
-                    })
+                    .Select(CreateProcessModel)
+                    .Where(p => p != null)
                     .OrderBy(p => p.Name);
 
                 return new ObservableCollection<ProcessModel>(processes);
             });
+        }
+
+        public ProcessModel CreateProcessModel(Process process)
+        {
+            var model = new ProcessModel();
+            try
+            {
+                model.Process = process;
+                model.ProcessId = process.Id;
+                model.Name = process.ProcessName;
+                model.MemoryUsage = process.WorkingSet64;
+                model.Priority = process.PriorityClass;
+                model.ProcessorAffinity = (long)process.ProcessorAffinity;
+
+                // Try to get executable path
+                try
+                {
+                    model.ExecutablePath = process.MainModule?.FileName ?? string.Empty;
+                }
+                catch
+                {
+                    model.ExecutablePath = string.Empty;
+                }
+            }
+            catch
+            {
+                // Process may have terminated or access denied
+                // Return a minimal model
+                model.ProcessId = process.Id;
+                model.Name = process.ProcessName;
+            }
+
+            return model;
         }
 
         public async Task SetProcessorAffinity(ProcessModel process, long affinityMask)
@@ -127,6 +153,60 @@ namespace ThreadPilot.Services
                 {
                     // Process may have ended
                 }
+            });
+        }
+
+        public async Task<ProcessModel?> GetProcessByIdAsync(int processId)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var process = Process.GetProcessById(processId);
+                    return CreateProcessModel(process);
+                }
+                catch
+                {
+                    return null;
+                }
+            });
+        }
+
+        public async Task<IEnumerable<ProcessModel>> GetProcessesByNameAsync(string executableName)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    var processes = Process.GetProcessesByName(executableName)
+                        .Select(CreateProcessModel)
+                        .Where(p => p != null);
+
+                    return processes;
+                }
+                catch
+                {
+                    return Enumerable.Empty<ProcessModel>();
+                }
+            });
+        }
+
+        public async Task<bool> IsProcessRunningAsync(string executableName)
+        {
+            var processes = await GetProcessesByNameAsync(executableName);
+            return processes.Any();
+        }
+
+        public async Task<IEnumerable<ProcessModel>> GetProcessesWithPathsAsync()
+        {
+            return await Task.Run(() =>
+            {
+                var processes = Process.GetProcesses()
+                    .Select(CreateProcessModel)
+                    .Where(p => p != null && !string.IsNullOrEmpty(p.ExecutablePath))
+                    .OrderBy(p => p.Name);
+
+                return processes;
             });
         }
     }

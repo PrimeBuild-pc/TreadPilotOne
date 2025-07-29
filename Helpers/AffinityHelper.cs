@@ -6,14 +6,14 @@ namespace ThreadPilot.Helpers
 {
     public static class AffinityHelper
     {
-        public static long CalculateAffinityMask(IEnumerable<CheckBox> cpuCheckboxes)
+        public static long CalculateAffinityMask(IEnumerable<System.Windows.Controls.CheckBox> cpuCheckboxes)
         {
             return cpuCheckboxes
                 .Where(cb => cb.IsChecked == true)
                 .Sum(cb => (long)cb.Tag);
         }
 
-        public static void UpdateCheckboxesFromMask(IEnumerable<CheckBox> cpuCheckboxes, long affinityMask)
+        public static void UpdateCheckboxesFromMask(IEnumerable<System.Windows.Controls.CheckBox> cpuCheckboxes, long affinityMask)
         {
             foreach (var checkbox in cpuCheckboxes)
             {

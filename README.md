@@ -6,16 +6,26 @@ ThreadPilot is a Windows process and power plan management tool that gives you f
 
 - 💻 Process Management
   - View all running processes with real-time updates
-  - Set CPU affinity for individual processes
+  - **Advanced CPU affinity with topology detection**
+  - **Quick selection for P-cores, E-cores, CCDs, and physical cores**
+  - **Dynamic UI adapting to detected CPU architecture**
   - Adjust process priority levels
   - Search and filter processes
   - Save/load process configurations as profiles
 
-- ⚡ Power Plan Management  
+- ⚡ Power Plan Management
   - View and switch between Windows power plans
+  - **Combined CPU affinity and power plan application**
   - Import custom power plan configurations
   - Monitor active power plan
   - Import custom power plan files (.pow)
+
+- 🔧 Advanced CPU Features
+  - **Intel Hybrid (P-core/E-core) detection and selection**
+  - **AMD CCD (Core Complex Die) awareness**
+  - **SMT/HyperThreading detection**
+  - **Multi-socket system support**
+  - **System tray integration with quick apply**
 
 ## Requirements 🔧
 

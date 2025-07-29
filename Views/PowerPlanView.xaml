@@ -21,8 +21,8 @@
         </Grid.ColumnDefinitions>
 
         <!-- System Power Plans -->
-        <GroupBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="0" 
-                 Header="System Power Plans" 
+        <GroupBox Grid.Row="0" Grid.RowSpan="2" Grid.Column="0"
+                 Header="⚡ Available Power Plans"
                  Margin="0,0,5,0">
             <Grid Margin="5">
                 <Grid.RowDefinitions>
@@ -30,12 +30,13 @@
                     <RowDefinition Height="*"/>
                 </Grid.RowDefinitions>
 
-                <Button Grid.Row="0" 
+                <Button Grid.Row="0"
                         Command="{Binding LoadPowerPlansCommand}"
-                        Content="Refresh Plans"
+                        Content="🔄 Refresh Plans"
                         HorizontalAlignment="Right"
                         Padding="10,5"
-                        Margin="0,0,0,10"/>
+                        Margin="0,0,0,10"
+                        ToolTip="Refresh the list of available power plans"/>
 
                 <ListView Grid.Row="1" 
                          ItemsSource="{Binding PowerPlans}"
@@ -93,7 +94,8 @@
             <Button Command="{Binding SetActivePlanCommand}"
                     Content="Set Active"
                     Padding="20,5"
-                    Margin="0,0,10,0"/>
+                    Margin="0,0,10,0"
+                    ToolTip="Activate the selected power plan"/>
         </StackPanel>
 
         <StackPanel Grid.Row="2" Grid.Column="1" 
@@ -101,7 +103,8 @@
                     Margin="5,10,0,0">
             <Button Command="{Binding ImportCustomPlanCommand}"
                     Content="Import Custom Plan"
-                    Padding="20,5"/>
+                    Padding="20,5"
+                    ToolTip="Import a custom power plan from file"/>
         </StackPanel>
     </Grid>
 </UserControl>

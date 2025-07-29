@@ -5,6 +5,7 @@ using System.IO;
 using System.Linq;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 using ThreadPilot.Models;
 
 namespace ThreadPilot.Services
@@ -12,6 +13,18 @@ namespace ThreadPilot.Services
     public class PowerPlanService : IPowerPlanService
     {
         private const string PowerPlansPath = @"C:\Users\Administrator\Desktop\Project\ThreadPilot_1\Powerplans";
+        private readonly object _lockObject = new();
+        private readonly ILogger<PowerPlanService> _logger;
+        private readonly IEnhancedLoggingService _enhancedLogger;
+        private string? _lastActivePowerPlanGuid;
+
+        public event EventHandler<PowerPlanChangedEventArgs>? PowerPlanChanged;
+
+        public PowerPlanService(ILogger<PowerPlanService> logger, IEnhancedLoggingService enhancedLogger)
+        {
+            _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _enhancedLogger = enhancedLogger ?? throw new ArgumentNullException(nameof(enhancedLogger));
+        }
 
         public async Task<ObservableCollection<PowerPlanModel>> GetPowerPlansAsync()
         {
@@ -83,16 +96,43 @@ namespace ThreadPilot.Services
 
         public async Task<bool> SetActivePowerPlan(PowerPlanModel powerPlan)
         {
-            return await Task.Run(() =>
+            return await SetActivePowerPlanByGuidAsync(powerPlan.Guid, false);
+        }
+
+        public async Task<bool> SetActivePowerPlanByGuidAsync(string powerPlanGuid, bool preventDuplicateChanges = true)
+        {
+            return await Task.Run(async () =>
             {
                 try
                 {
+                    // Check if change is needed when duplicate prevention is enabled
+                    if (preventDuplicateChanges)
+                    {
+                        var isChangeNeeded = await IsPowerPlanChangeNeededAsync(powerPlanGuid);
+                        if (!isChangeNeeded)
+                        {
+                            _logger.LogDebug("Power plan change skipped - already active: {PowerPlanGuid}", powerPlanGuid);
+                            return true; // No change needed, consider it successful
+                        }
+                    }
+
+                    var previousPowerPlan = await GetActivePowerPlan();
+                    var targetPowerPlan = await GetPowerPlanByGuidAsync(powerPlanGuid);
+
+                    _logger.LogInformation("Attempting to change power plan from '{FromPlan}' to '{ToPlan}'",
+                        previousPowerPlan?.Name ?? "Unknown", targetPowerPlan?.Name ?? "Unknown");
+
+                    await _enhancedLogger.LogPowerPlanChangeAsync(
+                        previousPowerPlan?.Name ?? "Unknown",
+                        targetPowerPlan?.Name ?? "Unknown",
+                        "Manual power plan change requested");
+
                     var process = new Process
                     {
                         StartInfo = new ProcessStartInfo
                         {
                             FileName = "powercfg",
-                            Arguments = $"/setactive {powerPlan.Guid}",
+                            Arguments = $"/setactive {powerPlanGuid}",
                             UseShellExecute = false,
                             RedirectStandardOutput = true,
                             CreateNoWindow = true,
@@ -103,10 +143,50 @@ namespace ThreadPilot.Services
                     process.Start();
                     process.WaitForExit();
 
-                    return process.ExitCode == 0;
+                    var success = process.ExitCode == 0;
+
+                    if (success)
+                    {
+                        lock (_lockObject)
+                        {
+                            _lastActivePowerPlanGuid = powerPlanGuid;
+                        }
+
+                        var newPowerPlan = await GetPowerPlanByGuidAsync(powerPlanGuid);
+
+                        _logger.LogInformation("Power plan successfully changed to '{PowerPlan}'", newPowerPlan?.Name ?? "Unknown");
+
+                        await _enhancedLogger.LogPowerPlanChangeAsync(
+                            previousPowerPlan?.Name ?? "Unknown",
+                            newPowerPlan?.Name ?? "Unknown",
+                            "Manual power plan change completed");
+
+                        PowerPlanChanged?.Invoke(this, new PowerPlanChangedEventArgs(
+                            previousPowerPlan, newPowerPlan, "Manual power plan change"));
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Failed to change power plan to '{PowerPlanGuid}' - powercfg exit code: {ExitCode}",
+                            powerPlanGuid, process.ExitCode);
+
+                        await _enhancedLogger.LogSystemEventAsync(LogEventTypes.PowerPlan.ChangeFailed,
+                            $"Failed to change power plan to '{targetPowerPlan?.Name ?? powerPlanGuid}' - Exit code: {process.ExitCode}",
+                            Microsoft.Extensions.Logging.LogLevel.Warning);
+                    }
+
+                    return success;
                 }
-                catch (Exception)
+                catch (Exception ex)
                 {
+                    _logger.LogError(ex, "Exception occurred while changing power plan to '{PowerPlanGuid}'", powerPlanGuid);
+
+                    await _enhancedLogger.LogErrorAsync(ex, "PowerPlanService.SetActivePowerPlanByGuidAsync",
+                        new Dictionary<string, object>
+                        {
+                            ["PowerPlanGuid"] = powerPlanGuid,
+                            ["PreventDuplicateChanges"] = preventDuplicateChanges
+                        });
+
                     return false;
                 }
             });
@@ -185,6 +265,53 @@ namespace ThreadPilot.Services
                     return false;
                 }
             });
+        }
+
+        public async Task<string?> GetActivePowerPlanGuidAsync()
+        {
+            var activePlan = await GetActivePowerPlan();
+            return activePlan?.Guid;
+        }
+
+        public async Task<bool> PowerPlanExistsAsync(string powerPlanGuid)
+        {
+            var powerPlans = await GetPowerPlansAsync();
+            return powerPlans.Any(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public async Task<PowerPlanModel?> GetPowerPlanByGuidAsync(string powerPlanGuid)
+        {
+            var powerPlans = await GetPowerPlansAsync();
+            return powerPlans.FirstOrDefault(p => string.Equals(p.Guid, powerPlanGuid, StringComparison.OrdinalIgnoreCase));
+        }
+
+        public async Task<bool> IsPowerPlanChangeNeededAsync(string targetPowerPlanGuid)
+        {
+            try
+            {
+                var currentGuid = await GetActivePowerPlanGuidAsync();
+
+                // Check if the target power plan is already active
+                if (string.Equals(currentGuid, targetPowerPlanGuid, StringComparison.OrdinalIgnoreCase))
+                {
+                    return false; // No change needed
+                }
+
+                // Check if we recently set this power plan (to prevent rapid switching)
+                lock (_lockObject)
+                {
+                    if (string.Equals(_lastActivePowerPlanGuid, targetPowerPlanGuid, StringComparison.OrdinalIgnoreCase))
+                    {
+                        return false; // We recently set this plan
+                    }
+                }
+
+                return true; // Change is needed
+            }
+            catch
+            {
+                return true; // If we can't determine, assume change is needed
+            }
         }
     }
 }
