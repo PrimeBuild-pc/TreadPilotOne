@@ -57,6 +57,8 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 - **Memory**: 4 GB RAM minimum (8 GB recommended for large process lists)
 - **Storage**: 200 MB free space for installation and configuration files
 
+<img width="1253" height="703" alt="image" src="https://github.com/user-attachments/assets/a1e37a2e-0817-463d-9f1f-c4e4a8e16d72" />
+
 ## 📦 **Installation**
 
 ### **Option 1: Portable Release (Recommended)**
