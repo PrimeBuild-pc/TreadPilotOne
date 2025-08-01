@@ -267,5 +267,101 @@ namespace ThreadPilot.Services
                 }
             });
         }
+
+        public async Task<bool> SetIdleServerStateAsync(ProcessModel process, bool enableIdleServer)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    // Get the actual process
+                    var actualProcess = Process.GetProcessById(process.ProcessId);
+
+                    // Use Windows API to set execution state for the process
+                    // This prevents the system from entering idle state while the process is running
+                    if (!enableIdleServer)
+                    {
+                        // Disable idle server by setting ES_CONTINUOUS | ES_SYSTEM_REQUIRED
+                        // This keeps the system awake while the process is running
+                        var result = NativeMethods.SetThreadExecutionState(
+                            NativeMethods.EXECUTION_STATE.ES_CONTINUOUS |
+                            NativeMethods.EXECUTION_STATE.ES_SYSTEM_REQUIRED);
+
+                        return result != 0;
+                    }
+                    else
+                    {
+                        // Re-enable idle server by clearing the execution state
+                        var result = NativeMethods.SetThreadExecutionState(
+                            NativeMethods.EXECUTION_STATE.ES_CONTINUOUS);
+
+                        return result != 0;
+                    }
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            });
+        }
+
+        public async Task<bool> SetRegistryPriorityAsync(ProcessModel process, bool enable, ProcessPriorityClass priority)
+        {
+            return await Task.Run(() =>
+            {
+                try
+                {
+                    using var key = Microsoft.Win32.Registry.LocalMachine.CreateSubKey(
+                        @"SOFTWARE\Microsoft\Windows NT\CurrentVersion\Image File Execution Options\" +
+                        Path.GetFileName(process.ExecutablePath));
+
+                    if (enable)
+                    {
+                        // Convert ProcessPriorityClass to registry priority value
+                        int priorityValue = priority switch
+                        {
+                            ProcessPriorityClass.Idle => 4,
+                            ProcessPriorityClass.BelowNormal => 6,
+                            ProcessPriorityClass.Normal => 8,
+                            ProcessPriorityClass.AboveNormal => 10,
+                            ProcessPriorityClass.High => 13,
+                            ProcessPriorityClass.RealTime => 24,
+                            _ => 8 // Default to Normal
+                        };
+
+                        key.SetValue("PriorityClass", priorityValue, Microsoft.Win32.RegistryValueKind.DWord);
+                    }
+                    else
+                    {
+                        // Remove the registry entry to disable enforcement
+                        key.DeleteValue("PriorityClass", false);
+                    }
+
+                    return true;
+                }
+                catch (Exception)
+                {
+                    return false;
+                }
+            });
+        }
+    }
+
+    /// <summary>
+    /// Native methods for Windows API calls
+    /// </summary>
+    internal static class NativeMethods
+    {
+        [System.Runtime.InteropServices.DllImport("kernel32.dll", CharSet = System.Runtime.InteropServices.CharSet.Auto, SetLastError = true)]
+        public static extern uint SetThreadExecutionState(EXECUTION_STATE esFlags);
+
+        [System.Flags]
+        public enum EXECUTION_STATE : uint
+        {
+            ES_AWAYMODE_REQUIRED = 0x00000040,
+            ES_CONTINUOUS = 0x80000000,
+            ES_DISPLAY_REQUIRED = 0x00000002,
+            ES_SYSTEM_REQUIRED = 0x00000001
+        }
     }
 }

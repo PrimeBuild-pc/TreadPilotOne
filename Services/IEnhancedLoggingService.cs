@@ -76,6 +76,16 @@ namespace ThreadPilot.Services
         Task<List<LogEntry>> GetRecentLogEntriesAsync(int count = 100);
 
         /// <summary>
+        /// Begin a correlated operation scope for better debugging
+        /// </summary>
+        IDisposable BeginScope(string operationName, object? parameters = null);
+
+        /// <summary>
+        /// Get the current correlation ID
+        /// </summary>
+        string? GetCurrentCorrelationId();
+
+        /// <summary>
         /// Get log entries for a specific date range
         /// </summary>
         Task<List<LogEntry>> GetLogEntriesAsync(DateTime fromDate, DateTime toDate);

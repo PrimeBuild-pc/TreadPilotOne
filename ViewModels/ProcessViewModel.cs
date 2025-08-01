@@ -15,10 +15,12 @@ namespace ThreadPilot.ViewModels
     public partial class ProcessViewModel : BaseViewModel
     {
         private readonly IProcessService _processService;
+        private readonly IVirtualizedProcessService _virtualizedProcessService;
         private readonly ICpuTopologyService _cpuTopologyService;
         private readonly IPowerPlanService _powerPlanService;
         private readonly ISystemTrayService _systemTrayService;
         private System.Timers.Timer? _refreshTimer;
+        private System.Timers.Timer? _searchDebounceTimer;
 
         [ObservableProperty]
         private ObservableCollection<ProcessModel> processes = new();
@@ -81,9 +83,40 @@ namespace ThreadPilot.ViewModels
         [ObservableProperty]
         private bool isHyperThreadingActive = false;
 
+        // New feature properties
+        [ObservableProperty]
+        private bool isIdleServerDisabled = false;
+
+        [ObservableProperty]
+        private bool isRegistryPriorityEnabled = false;
+
+        // PERFORMANCE IMPROVEMENT: Progressive loading support
+        [ObservableProperty]
+        private double loadingProgress = 0.0;
+
+        [ObservableProperty]
+        private string loadingStatusText = string.Empty;
+
+        // VIRTUALIZATION ENHANCEMENT: Batch loading support
+        [ObservableProperty]
+        private int currentBatchIndex = 0;
+
+        [ObservableProperty]
+        private int totalBatches = 0;
+
+        [ObservableProperty]
+        private int totalProcessCount = 0;
+
+        [ObservableProperty]
+        private bool hasMoreBatches = false;
+
+        [ObservableProperty]
+        private bool isVirtualizationEnabled = true;
+
         public ProcessViewModel(
             ILogger<ProcessViewModel> logger,
             IProcessService processService,
+            IVirtualizedProcessService virtualizedProcessService,
             ICpuTopologyService cpuTopologyService,
             IPowerPlanService powerPlanService,
             ISystemTrayService systemTrayService,
@@ -91,6 +124,7 @@ namespace ThreadPilot.ViewModels
             : base(logger, enhancedLoggingService)
         {
             _processService = processService ?? throw new ArgumentNullException(nameof(processService));
+            _virtualizedProcessService = virtualizedProcessService ?? throw new ArgumentNullException(nameof(virtualizedProcessService));
             _cpuTopologyService = cpuTopologyService ?? throw new ArgumentNullException(nameof(cpuTopologyService));
             _powerPlanService = powerPlanService ?? throw new ArgumentNullException(nameof(powerPlanService));
             _systemTrayService = systemTrayService ?? throw new ArgumentNullException(nameof(systemTrayService));
@@ -102,7 +136,38 @@ namespace ThreadPilot.ViewModels
             _systemTrayService.QuickApplyRequested += OnTrayQuickApplyRequested;
 
             SetupRefreshTimer();
+            SetupVirtualizedProcessService();
             // Note: InitializeAsync() will be called explicitly by MainWindow loading overlay
+        }
+
+        private void SetupVirtualizedProcessService()
+        {
+            // Configure virtualization settings
+            _virtualizedProcessService.Configuration.BatchSize = 50;
+            _virtualizedProcessService.Configuration.EnableBackgroundLoading = true;
+
+            // Subscribe to events
+            _virtualizedProcessService.BatchLoadProgress += OnBatchLoadProgress;
+            _virtualizedProcessService.BackgroundBatchLoaded += OnBackgroundBatchLoaded;
+        }
+
+        private async void OnBatchLoadProgress(object? sender, BatchLoadProgressEventArgs e)
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                LoadingProgress = e.ProgressPercentage;
+                LoadingStatusText = e.StatusMessage;
+            });
+        }
+
+        private async void OnBackgroundBatchLoaded(object? sender, ProcessBatchResult e)
+        {
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                // Background batch loaded - could update UI if needed
+                Logger.LogDebug("Background batch {BatchIndex} loaded with {ProcessCount} processes",
+                    e.BatchIndex, e.Processes.Count);
+            });
         }
 
         public override async Task InitializeAsync()
@@ -218,9 +283,13 @@ namespace ThreadPilot.ViewModels
                             // Update priority display - trigger property change to refresh ComboBox
                             OnPropertyChanged(nameof(SelectedProcess));
 
-                            // Update status
+                            // Update feature states from the selected process
+                            IsIdleServerDisabled = value.IsIdleServerDisabled;
+                            IsRegistryPriorityEnabled = value.IsRegistryPriorityEnabled;
+
+                            // BUG FIX: Update status without setting busy state for process selection
                             SetStatus($"Selected process: {value.Name} (PID: {value.ProcessId}) - " +
-                                    $"Priority: {value.Priority}, Affinity: 0x{value.ProcessorAffinity:X}");
+                                    $"Priority: {value.Priority}, Affinity: 0x{value.ProcessorAffinity:X}", false);
                         });
 
                         // Load current power plan association if available
@@ -261,14 +330,22 @@ namespace ThreadPilot.ViewModels
         {
             try
             {
-                await QuickApplyAffinityAndPowerPlanCommand.ExecuteAsync(null);
-                _systemTrayService.ShowBalloonTip("ThreadPilot",
-                    $"Settings applied to {SelectedProcess?.Name ?? "selected process"}", 2000);
+                // Marshal UI operations to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    await QuickApplyAffinityAndPowerPlanCommand.ExecuteAsync(null);
+                    _systemTrayService.ShowBalloonTip("ThreadPilot",
+                        $"Settings applied to {SelectedProcess?.Name ?? "selected process"}", 2000);
+                });
             }
             catch (Exception ex)
             {
-                _systemTrayService.ShowBalloonTip("ThreadPilot Error",
-                    $"Failed to apply settings: {ex.Message}", 3000);
+                // Marshal UI operations to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    _systemTrayService.ShowBalloonTip("ThreadPilot Error",
+                        $"Failed to apply settings: {ex.Message}", 3000);
+                });
             }
         }
 
@@ -414,28 +491,120 @@ namespace ThreadPilot.ViewModels
         }
 
         [RelayCommand]
+        public async Task LoadMoreProcesses()
+        {
+            if (!IsVirtualizationEnabled || !HasMoreBatches || IsBusy)
+                return;
+
+            try
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    SetStatus($"Loading more processes (batch {CurrentBatchIndex + 2})...");
+                });
+
+                var nextBatchIndex = CurrentBatchIndex + 1;
+                var batch = await _virtualizedProcessService.LoadProcessBatchAsync(nextBatchIndex, ShowActiveApplicationsOnly);
+
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    // Add new processes to existing collection
+                    foreach (var process in batch.Processes)
+                    {
+                        Processes.Add(process);
+                    }
+
+                    CurrentBatchIndex = batch.BatchIndex;
+                    TotalBatches = batch.TotalBatches;
+                    HasMoreBatches = batch.HasMoreBatches;
+                    TotalProcessCount = batch.TotalProcessCount;
+
+                    FilterProcesses();
+
+                    // BUG FIX: Ensure loading state is properly cleared
+                    ClearStatus();
+                    LoadingProgress = 0.0;
+                    LoadingStatusText = string.Empty;
+                });
+
+                // Preload next batch in background
+                await _virtualizedProcessService.PreloadNextBatchAsync(CurrentBatchIndex, ShowActiveApplicationsOnly);
+            }
+            catch (Exception ex)
+            {
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    // BUG FIX: Ensure loading state is cleared even on error
+                    LoadingProgress = 0.0;
+                    LoadingStatusText = string.Empty;
+                    SetStatus($"Error loading more processes: {ex.Message}", false);
+                });
+            }
+        }
+
+        [RelayCommand]
         public async Task LoadProcesses()
         {
             try
             {
                 System.Diagnostics.Debug.WriteLine($"LoadProcesses: Starting, ShowActiveApplicationsOnly={ShowActiveApplicationsOnly}");
 
-                // Update status on UI thread
+                // PERFORMANCE IMPROVEMENT: Progressive loading with status updates
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    SetStatus(ShowActiveApplicationsOnly ? "Loading active applications..." : "Loading processes...");
+                    LoadingProgress = 0.0;
+                    LoadingStatusText = ShowActiveApplicationsOnly ? "Loading active applications..." : "Loading processes...";
+                    SetStatus(LoadingStatusText);
                 });
 
                 ObservableCollection<ProcessModel> newProcesses;
-                if (ShowActiveApplicationsOnly)
+
+                // VIRTUALIZATION ENHANCEMENT: Use virtualized loading for large process lists
+                if (IsVirtualizationEnabled)
                 {
-                    System.Diagnostics.Debug.WriteLine("LoadProcesses: Getting active applications");
-                    newProcesses = await _processService.GetActiveApplicationsAsync();
+                    System.Diagnostics.Debug.WriteLine("LoadProcesses: Using virtualized loading");
+                    await _virtualizedProcessService.InitializeAsync();
+
+                    var totalCount = await _virtualizedProcessService.GetTotalProcessCountAsync(ShowActiveApplicationsOnly);
+                    if (totalCount > _virtualizedProcessService.Configuration.BatchSize)
+                    {
+                        // Load first batch only
+                        var batch = await _virtualizedProcessService.LoadProcessBatchAsync(0, ShowActiveApplicationsOnly);
+                        newProcesses = new ObservableCollection<ProcessModel>(batch.Processes);
+
+                        // Update virtualization state
+                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            CurrentBatchIndex = batch.BatchIndex;
+                            TotalBatches = batch.TotalBatches;
+                            HasMoreBatches = batch.HasMoreBatches;
+                            TotalProcessCount = batch.TotalProcessCount;
+                        });
+
+                        // Preload next batch in background
+                        await _virtualizedProcessService.PreloadNextBatchAsync(0, ShowActiveApplicationsOnly);
+                    }
+                    else
+                    {
+                        // Small list, load all processes normally
+                        newProcesses = ShowActiveApplicationsOnly
+                            ? await _processService.GetActiveApplicationsAsync()
+                            : await _processService.GetProcessesAsync();
+                    }
                 }
                 else
                 {
-                    System.Diagnostics.Debug.WriteLine("LoadProcesses: Getting all processes");
-                    newProcesses = await _processService.GetProcessesAsync();
+                    // Traditional loading
+                    if (ShowActiveApplicationsOnly)
+                    {
+                        System.Diagnostics.Debug.WriteLine("LoadProcesses: Getting active applications");
+                        newProcesses = await _processService.GetActiveApplicationsAsync();
+                    }
+                    else
+                    {
+                        System.Diagnostics.Debug.WriteLine("LoadProcesses: Getting all processes");
+                        newProcesses = await _processService.GetProcessesAsync();
+                    }
                 }
 
                 // Update UI on the UI thread
@@ -445,7 +614,11 @@ namespace ThreadPilot.ViewModels
                     System.Diagnostics.Debug.WriteLine($"LoadProcesses: Retrieved {Processes?.Count ?? 0} processes");
                     FilterProcesses();
                     System.Diagnostics.Debug.WriteLine($"LoadProcesses: After filtering, {FilteredProcesses?.Count ?? 0} processes visible");
+
+                    // BUG FIX: Ensure loading state is properly cleared
                     ClearStatus();
+                    LoadingProgress = 0.0;
+                    LoadingStatusText = string.Empty;
                 });
 
                 System.Diagnostics.Debug.WriteLine("LoadProcesses: Completed successfully");
@@ -455,6 +628,9 @@ namespace ThreadPilot.ViewModels
                 System.Diagnostics.Debug.WriteLine($"LoadProcesses: Exception occurred: {ex.Message}");
                 await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
+                    // BUG FIX: Ensure loading state is cleared even on error
+                    LoadingProgress = 0.0;
+                    LoadingStatusText = string.Empty;
                     SetStatus($"Error loading processes: {ex.Message}", false);
                 });
             }
@@ -970,12 +1146,16 @@ namespace ThreadPilot.ViewModels
 
         private void SetupRefreshTimer()
         {
-            _refreshTimer = new System.Timers.Timer(2000); // 2 second refresh
+            _refreshTimer = new System.Timers.Timer(5000); // PERFORMANCE OPTIMIZATION: Increased to 5 second refresh for better performance
             _refreshTimer.Elapsed += async (s, e) =>
             {
                 try
                 {
-                    await RefreshProcessesCommand.ExecuteAsync(null);
+                    // Marshal timer callback to UI thread to prevent cross-thread access exceptions
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                    {
+                        await RefreshProcessesCommand.ExecuteAsync(null);
+                    });
                 }
                 catch (Exception ex)
                 {
@@ -990,7 +1170,8 @@ namespace ThreadPilot.ViewModels
             _refreshTimer?.Stop();
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                SetStatus("Process monitoring paused (minimized)");
+                // BUG FIX: Don't set busy state when pausing refresh
+                SetStatus("Process monitoring paused (minimized)", false);
             });
         }
 
@@ -999,13 +1180,41 @@ namespace ThreadPilot.ViewModels
             _refreshTimer?.Start();
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
-                SetStatus("Process monitoring resumed");
+                // BUG FIX: Clear busy state when resuming refresh to prevent stuck loading state
+                ClearStatus();
+                SetStatus("Process monitoring resumed", false);
+
+                // Clear the status after a short delay to avoid persistent status message
+                _ = Task.Delay(2000).ContinueWith(_ =>
+                {
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (StatusMessage == "Process monitoring resumed")
+                        {
+                            ClearStatus();
+                        }
+                    });
+                });
             });
         }
 
         partial void OnSearchTextChanged(string value)
         {
-            FilterProcesses();
+            // PERFORMANCE OPTIMIZATION: Debounce search to prevent excessive filtering
+            _searchDebounceTimer?.Stop();
+            _searchDebounceTimer?.Dispose();
+
+            _searchDebounceTimer = new System.Timers.Timer(300); // 300ms debounce
+            _searchDebounceTimer.Elapsed += (s, e) =>
+            {
+                _searchDebounceTimer?.Stop();
+                _searchDebounceTimer?.Dispose();
+                _searchDebounceTimer = null;
+
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                System.Windows.Application.Current.Dispatcher.InvokeAsync(() => FilterProcesses());
+            };
+            _searchDebounceTimer.Start();
         }
 
         partial void OnShowActiveApplicationsOnlyChanged(bool value)
@@ -1018,17 +1227,62 @@ namespace ThreadPilot.ViewModels
 
         partial void OnHideSystemProcessesChanged(bool value)
         {
-            FilterProcesses();
+            // PERFORMANCE OPTIMIZATION: Debounce filter operations
+            DebounceFilterOperation();
         }
 
         partial void OnHideIdleProcessesChanged(bool value)
         {
-            FilterProcesses();
+            // PERFORMANCE OPTIMIZATION: Debounce filter operations
+            DebounceFilterOperation();
         }
 
         partial void OnSortModeChanged(string value)
         {
-            FilterProcesses();
+            // PERFORMANCE OPTIMIZATION: Debounce filter operations
+            DebounceFilterOperation();
+        }
+
+        private System.Timers.Timer? _filterDebounceTimer;
+
+        private void DebounceFilterOperation()
+        {
+            _filterDebounceTimer?.Stop();
+            _filterDebounceTimer?.Dispose();
+
+            _filterDebounceTimer = new System.Timers.Timer(100); // 100ms debounce for filter operations
+            _filterDebounceTimer.Elapsed += (s, e) =>
+            {
+                _filterDebounceTimer?.Stop();
+                _filterDebounceTimer?.Dispose();
+                _filterDebounceTimer = null;
+
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                System.Windows.Application.Current.Dispatcher.InvokeAsync(() => FilterProcesses());
+            };
+            _filterDebounceTimer.Start();
+        }
+
+        partial void OnIsIdleServerDisabledChanged(bool value)
+        {
+            if (SelectedProcess != null)
+            {
+                _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    await ToggleIdleServerAsync(value);
+                });
+            }
+        }
+
+        partial void OnIsRegistryPriorityEnabledChanged(bool value)
+        {
+            if (SelectedProcess != null)
+            {
+                _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                {
+                    await ToggleRegistryPriorityAsync(value);
+                });
+            }
         }
 
         private void FilterProcesses()
@@ -1063,7 +1317,51 @@ namespace ThreadPilot.ViewModels
                 _ => filtered.OrderByDescending(p => p.CpuUsage)
             };
 
-            FilteredProcesses = new ObservableCollection<ProcessModel>(filtered);
+            // PERFORMANCE OPTIMIZATION: Update existing collection instead of creating new one
+            var filteredList = filtered.ToList();
+
+            // Remove items that are no longer in the filtered list
+            for (int i = FilteredProcesses.Count - 1; i >= 0; i--)
+            {
+                if (!filteredList.Contains(FilteredProcesses[i]))
+                {
+                    FilteredProcesses.RemoveAt(i);
+                }
+            }
+
+            // Add new items that aren't already in the collection
+            foreach (var item in filteredList)
+            {
+                if (!FilteredProcesses.Contains(item))
+                {
+                    FilteredProcesses.Add(item);
+                }
+            }
+
+            // Reorder existing items if necessary (only if sort order changed)
+            if (FilteredProcesses.Count > 1)
+            {
+                var currentOrder = FilteredProcesses.ToList();
+                bool needsReordering = false;
+
+                for (int i = 0; i < Math.Min(currentOrder.Count, filteredList.Count); i++)
+                {
+                    if (currentOrder[i] != filteredList[i])
+                    {
+                        needsReordering = true;
+                        break;
+                    }
+                }
+
+                if (needsReordering)
+                {
+                    FilteredProcesses.Clear();
+                    foreach (var item in filteredList)
+                    {
+                        FilteredProcesses.Add(item);
+                    }
+                }
+            }
         }
 
         private static bool IsSystemProcess(ProcessModel process)
@@ -1127,9 +1425,126 @@ namespace ThreadPilot.ViewModels
             // Notify UI of changes
             System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
             {
+                // Reset feature states
+                IsIdleServerDisabled = false;
+                IsRegistryPriorityEnabled = false;
+
                 OnPropertyChanged(nameof(CpuCores));
-                SetStatus("Process selection cleared");
+
+                // BUG FIX: Clear status without setting busy state and auto-clear after delay
+                SetStatus("Process selection cleared", false);
+
+                // Clear the status after a short delay
+                _ = Task.Delay(2000).ContinueWith(_ =>
+                {
+                    System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        if (StatusMessage == "Process selection cleared")
+                        {
+                            ClearStatus();
+                        }
+                    });
+                });
             });
+        }
+
+        /// <summary>
+        /// Toggles the idle server functionality for the selected process
+        /// </summary>
+        private async Task ToggleIdleServerAsync(bool disable)
+        {
+            if (SelectedProcess == null) return;
+
+            try
+            {
+                SetStatus($"{(disable ? "Disabling" : "Enabling")} idle server for {SelectedProcess.Name}...");
+
+                // Implementation for disabling/enabling idle server
+                // This typically involves setting process execution state or power management settings
+                var success = await _processService.SetIdleServerStateAsync(SelectedProcess, !disable);
+
+                if (success)
+                {
+                    SelectedProcess.IsIdleServerDisabled = disable;
+                    SetStatus($"Idle server {(disable ? "disabled" : "enabled")} for {SelectedProcess.Name}");
+
+                    await LogUserActionAsync("IdleServer",
+                        $"Idle server {(disable ? "disabled" : "enabled")} for process {SelectedProcess.Name}",
+                        $"PID: {SelectedProcess.ProcessId}");
+                }
+                else
+                {
+                    SetStatus($"Failed to {(disable ? "disable" : "enable")} idle server for {SelectedProcess.Name}", false);
+                    // Revert the UI state
+                    IsIdleServerDisabled = !disable;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error toggling idle server for process {ProcessName}", SelectedProcess.Name);
+                SetStatus($"Error: {ex.Message}", false);
+                // Revert the UI state
+                IsIdleServerDisabled = !disable;
+            }
+        }
+
+        /// <summary>
+        /// Toggles registry-based priority enforcement for the selected process
+        /// </summary>
+        private async Task ToggleRegistryPriorityAsync(bool enable)
+        {
+            if (SelectedProcess == null) return;
+
+            try
+            {
+                SetStatus($"{(enable ? "Enabling" : "Disabling")} registry priority enforcement for {SelectedProcess.Name}...");
+
+                // Implementation for registry-based priority setting
+                var success = await _processService.SetRegistryPriorityAsync(SelectedProcess, enable, SelectedProcess.Priority);
+
+                if (success)
+                {
+                    SelectedProcess.IsRegistryPriorityEnabled = enable;
+
+                    if (enable)
+                    {
+                        SetStatus($"Registry priority enforcement enabled for {SelectedProcess.Name}. Process restart required for changes to take effect.");
+
+                        // Show notification about restart requirement
+                        await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                        {
+                            System.Windows.MessageBox.Show(
+                                $"Registry priority has been set for {SelectedProcess.Name}.\n\n" +
+                                "The process must be restarted for the registry changes to take effect.\n\n" +
+                                "This setting will persist across system reboots and will automatically apply the selected priority when the process starts.",
+                                "Registry Priority Set - Restart Required",
+                                System.Windows.MessageBoxButton.OK,
+                                System.Windows.MessageBoxImage.Information);
+                        });
+                    }
+                    else
+                    {
+                        SetStatus($"Registry priority enforcement disabled for {SelectedProcess.Name}");
+                    }
+
+                    await LogUserActionAsync("RegistryPriority",
+                        $"Registry priority enforcement {(enable ? "enabled" : "disabled")} for process {SelectedProcess.Name}",
+                        $"PID: {SelectedProcess.ProcessId}, Priority: {SelectedProcess.Priority}");
+                }
+                else
+                {
+                    SetStatus($"Failed to {(enable ? "enable" : "disable")} registry priority enforcement for {SelectedProcess.Name}", false);
+                    // Revert the UI state
+                    IsRegistryPriorityEnabled = !enable;
+                }
+            }
+            catch (Exception ex)
+            {
+                Logger.LogError(ex, "Error toggling registry priority for process {ProcessName}", SelectedProcess.Name);
+                SetStatus($"Error: {ex.Message}", false);
+                // Revert the UI state
+                IsRegistryPriorityEnabled = !enable;
+            }
         }
     }
 }

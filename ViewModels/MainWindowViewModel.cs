@@ -211,9 +211,13 @@ namespace ThreadPilot
 
         private async void OnGameBoostActivated(object? sender, GameBoostActivatedEventArgs e)
         {
-            IsGameBoostActive = true;
-            CurrentGameName = e.GameProcess?.Name;
-            UpdateGameBoostStatusText();
+            // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                IsGameBoostActive = true;
+                CurrentGameName = e.GameProcess?.Name;
+                UpdateGameBoostStatusText();
+            });
 
             if (_notificationService != null)
             {
@@ -226,9 +230,13 @@ namespace ThreadPilot
 
         private async void OnGameBoostDeactivated(object? sender, GameBoostDeactivatedEventArgs e)
         {
-            IsGameBoostActive = false;
-            CurrentGameName = null;
-            UpdateGameBoostStatusText();
+            // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+            await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                IsGameBoostActive = false;
+                CurrentGameName = null;
+                UpdateGameBoostStatusText();
+            });
 
             if (_notificationService != null)
             {
@@ -241,8 +249,12 @@ namespace ThreadPilot
 
         private void OnServiceStatusChanged(object? sender, ServiceStatusEventArgs e)
         {
-            IsProcessMonitoringActive = e.IsRunning;
-            ProcessMonitoringStatusText = $"Process Monitoring: {e.Status}";
+            // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                IsProcessMonitoringActive = e.IsRunning;
+                ProcessMonitoringStatusText = $"Process Monitoring: {e.Status}";
+            });
         }
 
         public void UpdateProcessMonitoringStatus(bool isActive, string status)

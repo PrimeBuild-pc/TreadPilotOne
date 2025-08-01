@@ -49,6 +49,12 @@
                             Content="🔄 Refresh"
                             Padding="10,5"
                             ToolTip="Refresh the process list"/>
+                    <Button Command="{Binding LoadMoreProcessesCommand}"
+                            Content="📄 Load More"
+                            Padding="10,5"
+                            Margin="5,0,0,0"
+                            Visibility="{Binding HasMoreBatches, Converter={StaticResource BoolToVisibilityConverter}}"
+                            ToolTip="Load more processes (virtualized loading)"/>
                 </StackPanel>
 
                 <!-- Smart Filtering Controls -->
@@ -78,39 +84,66 @@
             </Grid>
         </GroupBox>
 
-        <!-- Process List -->
-        <DataGrid Grid.Row="1"
-                  ItemsSource="{Binding FilteredProcesses}"
-                  SelectedItem="{Binding SelectedProcess}"
-                  AutoGenerateColumns="False"
-                  IsReadOnly="True"
-                  SelectionMode="Single"
-                  GridLinesVisibility="Horizontal"
-                  HeadersVisibility="Column"
-                  CanUserResizeColumns="True"
-                  CanUserSortColumns="True"
-                  Margin="0,0,0,10"
-                  VirtualizingPanel.IsVirtualizing="True"
-                  VirtualizingPanel.VirtualizationMode="Recycling"
-                  VirtualizingPanel.ScrollUnit="Item"
-                  EnableRowVirtualization="True"
-                  EnableColumnVirtualization="True"
-                  ScrollViewer.CanContentScroll="True">
-            <DataGrid.Columns>
-                <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
-                <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="60"/>
-                <DataGridTextColumn Header="Window Title" Binding="{Binding MainWindowTitle}" Width="200"/>
-                <DataGridCheckBoxColumn Header="Has Window" Binding="{Binding HasVisibleWindow}" Width="80"/>
-                <DataGridTextColumn Header="CPU Usage" Binding="{Binding CpuUsage, StringFormat={}{0:N1}%}" Width="80"/>
-                <DataGridTextColumn Header="Memory (MB)"
-                                  Binding="{Binding MemoryUsage, Converter={StaticResource BytesToMbConverter}}"
-                                  Width="80"/>
-                <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
-                <DataGridTextColumn Header="Affinity"
-                                  Binding="{Binding ProcessorAffinity, Converter={StaticResource AffinityMaskConverter}}"
-                                  Width="*"/>
-            </DataGrid.Columns>
-        </DataGrid>
+        <!-- Process List with Loading Overlay -->
+        <Grid Grid.Row="1">
+            <DataGrid ItemsSource="{Binding FilteredProcesses}"
+                      SelectedItem="{Binding SelectedProcess}"
+                      AutoGenerateColumns="False"
+                      IsReadOnly="True"
+                      SelectionMode="Single"
+                      GridLinesVisibility="Horizontal"
+                      HeadersVisibility="Column"
+                      CanUserResizeColumns="True"
+                      CanUserSortColumns="True"
+                      Margin="0,0,0,10"
+                      VirtualizingPanel.IsVirtualizing="True"
+                      VirtualizingPanel.VirtualizationMode="Recycling"
+                      VirtualizingPanel.ScrollUnit="Item"
+                      EnableRowVirtualization="True"
+                      EnableColumnVirtualization="True"
+                      ScrollViewer.CanContentScroll="True">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Name" Binding="{Binding Name}" Width="150"/>
+                    <DataGridTextColumn Header="ID" Binding="{Binding ProcessId}" Width="60"/>
+                    <DataGridTextColumn Header="Window Title" Binding="{Binding MainWindowTitle}" Width="200"/>
+                    <DataGridCheckBoxColumn Header="Has Window" Binding="{Binding HasVisibleWindow}" Width="80"/>
+                    <DataGridTextColumn Header="CPU Usage" Binding="{Binding CpuUsage, StringFormat={}{0:N1}%}" Width="80"/>
+                    <DataGridTextColumn Header="Memory (MB)"
+                                      Binding="{Binding MemoryUsage, Converter={StaticResource BytesToMbConverter}}"
+                                      Width="80"/>
+                    <DataGridTextColumn Header="Priority" Binding="{Binding Priority}" Width="80"/>
+                    <DataGridTextColumn Header="Affinity"
+                                      Binding="{Binding ProcessorAffinity, Converter={StaticResource AffinityMaskConverter}}"
+                                      Width="*"/>
+                </DataGrid.Columns>
+            </DataGrid>
+
+            <!-- Progressive Loading Indicator -->
+            <Border Background="#80FFFFFF" Visibility="{Binding IsBusy, Converter={StaticResource BoolToVisibilityConverter}}">
+                <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center">
+                    <ProgressBar Value="{Binding LoadingProgress}" Maximum="100" Width="200" Height="20" Margin="0,0,0,10"/>
+                    <TextBlock Text="{Binding LoadingStatusText}" HorizontalAlignment="Center" FontWeight="Bold"/>
+                </StackPanel>
+            </Border>
+
+            <!-- Virtualization Status -->
+            <Border Background="#F0F8FF" BorderBrush="#4169E1" BorderThickness="1"
+                    Visibility="{Binding IsVirtualizationEnabled, Converter={StaticResource BoolToVisibilityConverter}}"
+                    HorizontalAlignment="Right" VerticalAlignment="Bottom" Margin="10" Padding="5">
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="📊" FontSize="12" Margin="0,0,3,0"/>
+                    <TextBlock FontSize="10" Foreground="#4169E1">
+                        <Run Text="Batch:"/>
+                        <Run Text="{Binding CurrentBatchIndex, StringFormat={}{0:N0}}"/>
+                        <Run Text="/"/>
+                        <Run Text="{Binding TotalBatches, StringFormat={}{0:N0}}"/>
+                        <Run Text="("/>
+                        <Run Text="{Binding TotalProcessCount, StringFormat={}{0:N0}}"/>
+                        <Run Text="total)"/>
+                    </TextBlock>
+                </StackPanel>
+            </Border>
+        </Grid>
 
         <!-- Process Controls -->
         <Grid Grid.Row="2">
@@ -145,8 +178,22 @@
                                 CommandParameter="{Binding ElementName=PriorityComboBox, Path=SelectedValue}"
                                 Content="Set Priority"
                                 Padding="10,5"
+                                Margin="0,0,0,5"
                                 IsEnabled="{Binding SelectedProcess, Converter={StaticResource BoolToVisibilityConverter}}"
                                 ToolTip="Apply the selected priority to the process"/>
+
+                        <!-- Registry Priority Enforcement -->
+                        <CheckBox Content="Enforce Priority by Registry"
+                                  IsChecked="{Binding IsRegistryPriorityEnabled}"
+                                  IsEnabled="{Binding SelectedProcess, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  Margin="0,0,0,5"
+                                  ToolTip="Apply priority through Windows registry. Process must be restarted for changes to take effect. This setting persists across system reboots."/>
+
+                        <!-- Disable Idle Server -->
+                        <CheckBox Content="Disable Idle Server"
+                                  IsChecked="{Binding IsIdleServerDisabled}"
+                                  IsEnabled="{Binding SelectedProcess, Converter={StaticResource BoolToVisibilityConverter}}"
+                                  ToolTip="Prevents the system from entering idle state while this process is running. Useful for games and performance-critical applications."/>
                     </StackPanel>
                 </GroupBox>
 

@@ -5,6 +5,7 @@ using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Logging;
 using ThreadPilot.Models;
 
@@ -16,21 +17,38 @@ namespace ThreadPilot.Services
     public class CpuTopologyService : ICpuTopologyService
     {
         private readonly ILogger<CpuTopologyService> _logger;
+        private readonly IMemoryCache _cache;
         private CpuTopologyModel? _currentTopology;
+
+        private const string TOPOLOGY_CACHE_KEY = "cpu_topology";
+        private static readonly TimeSpan CACHE_DURATION = TimeSpan.FromHours(1);
 
         public event EventHandler<CpuTopologyDetectedEventArgs>? TopologyDetected;
         public CpuTopologyModel? CurrentTopology => _currentTopology;
 
-        public CpuTopologyService(ILogger<CpuTopologyService> logger)
+        public CpuTopologyService(ILogger<CpuTopologyService> logger, IMemoryCache? cache = null)
         {
             _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+            _cache = cache ?? new MemoryCache(new MemoryCacheOptions
+            {
+                SizeLimit = 10,
+                CompactionPercentage = 0.1
+            });
         }
 
         public async Task<CpuTopologyModel> DetectTopologyAsync()
         {
+            // PERFORMANCE IMPROVEMENT: Check cache first to avoid expensive WMI calls
+            if (_cache.TryGetValue(TOPOLOGY_CACHE_KEY, out CpuTopologyModel? cachedTopology))
+            {
+                _logger.LogInformation("CPU topology retrieved from cache");
+                _currentTopology = cachedTopology;
+                return cachedTopology;
+            }
+
             try
             {
-                _logger.LogInformation("Starting CPU topology detection");
+                _logger.LogInformation("Starting CPU topology detection (cache miss)");
                 
                 var topology = new CpuTopologyModel();
                 
@@ -48,13 +66,16 @@ namespace ThreadPilot.Services
                 
                 _currentTopology = topology;
                 topology.TopologyDetectionSuccessful = true;
-                
-                _logger.LogInformation("CPU topology detection completed successfully. " +
+
+                // PERFORMANCE IMPROVEMENT: Cache the topology to avoid expensive WMI calls
+                _cache.Set(TOPOLOGY_CACHE_KEY, topology, CACHE_DURATION);
+
+                _logger.LogInformation("CPU topology detection completed successfully and cached. " +
                     "Logical cores: {LogicalCores}, Physical cores: {PhysicalCores}, " +
                     "Sockets: {Sockets}, HT: {HasHT}, Hybrid: {HasHybrid}, CCD: {HasCcd}",
                     topology.TotalLogicalCores, topology.TotalPhysicalCores, topology.TotalSockets,
                     topology.HasHyperThreading, topology.HasIntelHybrid, topology.HasAmdCcd);
-                
+
                 TopologyDetected?.Invoke(this, new CpuTopologyDetectedEventArgs(topology, true));
                 return topology;
             }

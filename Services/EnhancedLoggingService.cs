@@ -25,6 +25,10 @@ namespace ThreadPilot.Services
         private bool _isInitialized;
         private bool _disposed;
 
+        // PERFORMANCE IMPROVEMENT: Correlation tracking for better debugging
+        internal readonly AsyncLocal<string?> _correlationId = new();
+        internal readonly ConcurrentDictionary<string, DateTime> _operationStartTimes = new();
+
         public string CurrentLogFilePath => _currentLogFilePath;
         public string LogDirectoryPath => _logDirectory;
         public bool IsDebugLoggingEnabled => _settingsService.Settings.EnableDebugLogging;
@@ -185,6 +189,27 @@ namespace ThreadPilot.Services
 
             var message = $"Application {eventType}: {details}";
             await LogStructuredEventAsync("Lifecycle", message, LogLevel.Information, properties);
+        }
+
+        public IDisposable BeginScope(string operationName, object? parameters = null)
+        {
+            var correlationId = Guid.NewGuid().ToString("N")[..8];
+            _correlationId.Value = correlationId;
+            _operationStartTimes[correlationId] = DateTime.UtcNow;
+
+            var parametersDict = parameters != null
+                ? JsonSerializer.Serialize(parameters)
+                : "{}";
+
+            _logger.LogInformation("Operation {OperationName} started with correlation {CorrelationId} and parameters {Parameters}",
+                operationName, correlationId, parametersDict);
+
+            return new OperationScope(this, operationName, correlationId);
+        }
+
+        public string? GetCurrentCorrelationId()
+        {
+            return _correlationId.Value;
         }
 
         private async Task LogStructuredEventAsync(string category, string message, LogLevel level, Dictionary<string, object> properties, Exception? exception = null)
@@ -475,6 +500,41 @@ namespace ThreadPilot.Services
             _flushTimer?.Dispose();
             FlushLogsAsync().Wait(TimeSpan.FromSeconds(5));
             _fileLock?.Dispose();
+            _disposed = true;
+        }
+    }
+
+    /// <summary>
+    /// Operation scope for correlation tracking
+    /// </summary>
+    internal class OperationScope : IDisposable
+    {
+        private readonly EnhancedLoggingService _loggingService;
+        private readonly string _operationName;
+        private readonly string _correlationId;
+        private readonly DateTime _startTime;
+        private bool _disposed;
+
+        public OperationScope(EnhancedLoggingService loggingService, string operationName, string correlationId)
+        {
+            _loggingService = loggingService;
+            _operationName = operationName;
+            _correlationId = correlationId;
+            _startTime = DateTime.UtcNow;
+        }
+
+        public void Dispose()
+        {
+            if (_disposed) return;
+
+            var duration = DateTime.UtcNow - _startTime;
+            _loggingService._operationStartTimes.TryRemove(_correlationId, out _);
+            _loggingService._correlationId.Value = null;
+
+            // Use the public logging method instead of accessing private _logger
+            _loggingService.LogSystemEventAsync("OperationCompleted",
+                $"Operation {_operationName} completed with correlation {_correlationId} in {duration.TotalMilliseconds}ms");
+
             _disposed = true;
         }
     }

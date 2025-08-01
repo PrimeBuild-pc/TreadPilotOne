@@ -64,5 +64,11 @@ namespace ThreadPilot.Models
 
         [ObservableProperty]
         private bool hasVisibleWindow;
+
+        [ObservableProperty]
+        private bool isIdleServerDisabled;
+
+        [ObservableProperty]
+        private bool isRegistryPriorityEnabled;
     }
 }

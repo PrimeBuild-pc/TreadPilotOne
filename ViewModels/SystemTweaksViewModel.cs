@@ -133,8 +133,12 @@ namespace ThreadPilot.ViewModels
         {
             try
             {
-                IsRefreshing = true;
-                RefreshStatusText = "Refreshing system tweaks...";
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    IsRefreshing = true;
+                    RefreshStatusText = "Refreshing system tweaks...";
+                });
 
                 await _systemTweaksService.RefreshAllStatusesAsync();
 
@@ -144,7 +148,11 @@ namespace ThreadPilot.ViewModels
                     await UpdateTweakItemStatusAsync(item);
                 }
 
-                RefreshStatusText = $"Last refreshed: {DateTime.Now:HH:mm:ss}";
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    RefreshStatusText = $"Last refreshed: {DateTime.Now:HH:mm:ss}";
+                });
             }
             catch (Exception ex)
             {
@@ -156,7 +164,11 @@ namespace ThreadPilot.ViewModels
             }
             finally
             {
-                IsRefreshing = false;
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    IsRefreshing = false;
+                });
             }
         }
 

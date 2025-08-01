@@ -46,7 +46,17 @@ namespace ThreadPilot.Services
 
             // Enhanced logging service
             services.AddSingleton<IEnhancedLoggingService, EnhancedLoggingService>();
-            
+
+            // Memory caching for performance - PERFORMANCE IMPROVEMENT
+            services.AddMemoryCache();
+
+            // Service lifecycle management - PERFORMANCE IMPROVEMENT
+            services.AddSingleton<IServiceHealthMonitor, ServiceHealthMonitor>();
+            services.AddSingleton<IServiceDisposalCoordinator, ServiceDisposalCoordinator>();
+
+            // Error recovery and retry policies - RELIABILITY IMPROVEMENT
+            services.AddSingleton<IRetryPolicyService, RetryPolicyService>();
+
             // Service factory for advanced service management
             services.AddSingleton<IServiceFactory, ServiceFactory>();
 
@@ -63,6 +73,8 @@ namespace ThreadPilot.Services
         {
             // Core system interaction services
             services.AddSingleton<IProcessService, ProcessService>();
+            services.AddSingleton<IVirtualizedProcessService, VirtualizedProcessService>();
+            services.AddSingleton<IConditionalProfileService, ConditionalProfileService>();
             services.AddSingleton<IPowerPlanService, PowerPlanService>();
             services.AddSingleton<ICpuTopologyService, CpuTopologyService>();
 
@@ -99,6 +111,7 @@ namespace ThreadPilot.Services
             
             // User interface services
             services.AddSingleton<INotificationService, NotificationService>();
+            services.AddSingleton<ISmartNotificationService, SmartNotificationService>();
             services.AddSingleton<ISystemTrayService, SystemTrayService>();
             
             // System integration services

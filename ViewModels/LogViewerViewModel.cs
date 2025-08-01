@@ -168,13 +168,12 @@ namespace ThreadPilot.ViewModels
                     CorrelationId = entry.CorrelationId
                 }).ToList();
 
-                LogEntries.Clear();
-                foreach (var model in displayModels)
+                // PERFORMANCE OPTIMIZATION: Replace collection instead of Clear() + Add() loop
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
                 {
-                    LogEntries.Add(model);
-                }
-
-                StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                    LogEntries = new ObservableCollection<LogEntryDisplayModel>(displayModels);
+                    StatusMessage = $"Loaded {LogEntries.Count} log entries";
+                });
             }
             catch (Exception ex)
             {
@@ -344,20 +343,20 @@ namespace ThreadPilot.ViewModels
 
         partial void OnSearchTextChanged(string value)
         {
-            // Trigger refresh when search text changes
-            _ = Task.Run(RefreshLogsAsync);
+            // Trigger refresh when search text changes - marshal to UI thread to prevent cross-thread access exceptions
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await RefreshLogsAsync());
         }
 
         partial void OnSelectedCategoryChanged(string value)
         {
-            // Trigger refresh when category changes
-            _ = Task.Run(RefreshLogsAsync);
+            // Trigger refresh when category changes - marshal to UI thread to prevent cross-thread access exceptions
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await RefreshLogsAsync());
         }
 
         partial void OnSelectedLogLevelChanged(LogLevel value)
         {
-            // Trigger refresh when log level changes
-            _ = Task.Run(RefreshLogsAsync);
+            // Trigger refresh when log level changes - marshal to UI thread to prevent cross-thread access exceptions
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await RefreshLogsAsync());
         }
     }
 

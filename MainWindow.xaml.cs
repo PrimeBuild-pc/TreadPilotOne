@@ -99,8 +99,8 @@ namespace ThreadPilot
                 SetDataContexts();
                 System.Diagnostics.Debug.WriteLine("DataContexts set");
 
-                // Start async initialization
-                _ = Task.Run(async () => await InitializeApplicationAsync());
+                // Start async initialization - marshal to UI thread to prevent cross-thread access exceptions
+                _ = Dispatcher.InvokeAsync(async () => await InitializeApplicationAsync());
                 System.Diagnostics.Debug.WriteLine("Async initialization started");
 
                 SetupTestKeyBinding();
@@ -352,12 +352,12 @@ namespace ThreadPilot
 
                 if (result == MessageBoxResult.Yes)
                 {
-                    // Retry initialization
+                    // Retry initialization - marshal to UI thread to prevent cross-thread access exceptions
                     _isInitializationComplete = false;
                     _initializationTasks.Clear();
                     UpdateLoadingStatus("Retrying initialization...");
                     LogDebug("=== RETRYING INITIALIZATION ===");
-                    _ = Task.Run(async () => await InitializeApplicationAsync());
+                    _ = Dispatcher.InvokeAsync(async () => await InitializeApplicationAsync());
                 }
                 else
                 {
@@ -930,8 +930,19 @@ namespace ThreadPilot
         {
             try
             {
-                _systemTrayUpdateTimer = new System.Timers.Timer(5000); // Update every 5 seconds
-                _systemTrayUpdateTimer.Elapsed += async (s, e) => await UpdateSystemTrayStatusAsync();
+                _systemTrayUpdateTimer = new System.Timers.Timer(10000); // PERFORMANCE OPTIMIZATION: Update every 10 seconds instead of 5
+                // Marshal timer callback to UI thread to avoid cross-thread access issues
+                _systemTrayUpdateTimer.Elapsed += async (s, e) =>
+                {
+                    try
+                    {
+                        await Dispatcher.InvokeAsync(async () => await UpdateSystemTrayStatusAsync());
+                    }
+                    catch (Exception ex)
+                    {
+                        System.Diagnostics.Debug.WriteLine($"Error in system tray update timer: {ex.Message}");
+                    }
+                };
                 _systemTrayUpdateTimer.AutoReset = true;
                 _systemTrayUpdateTimer.Start();
             }
@@ -1102,11 +1113,15 @@ namespace ThreadPilot
         {
             try
             {
-                // Update tray with Game Boost active status
-                _systemTrayService.UpdateGameBoostStatus(true, e.GameProcess.Name);
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                Dispatcher.InvokeAsync(() =>
+                {
+                    // Update tray with Game Boost active status
+                    _systemTrayService.UpdateGameBoostStatus(true, e.GameProcess.Name);
 
-                // Update main window status
-                _mainWindowViewModel.UpdateGameBoostStatus(true, e.GameProcess.Name);
+                    // Update main window status
+                    _mainWindowViewModel.UpdateGameBoostStatus(true, e.GameProcess.Name);
+                });
             }
             catch (Exception ex)
             {
@@ -1118,11 +1133,15 @@ namespace ThreadPilot
         {
             try
             {
-                // Update tray with Game Boost inactive status
-                _systemTrayService.UpdateGameBoostStatus(false);
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                Dispatcher.InvokeAsync(() =>
+                {
+                    // Update tray with Game Boost inactive status
+                    _systemTrayService.UpdateGameBoostStatus(false);
 
-                // Update main window status
-                _mainWindowViewModel.UpdateGameBoostStatus(false);
+                    // Update main window status
+                    _mainWindowViewModel.UpdateGameBoostStatus(false);
+                });
             }
             catch (Exception ex)
             {

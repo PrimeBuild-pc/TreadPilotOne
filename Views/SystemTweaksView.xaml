@@ -152,10 +152,11 @@
                     <DataTemplate>
                         <GroupBox Margin="5" Padding="10">
                             <GroupBox.Header>
-                                <!-- Tweak Name Only -->
+                                <!-- Enhanced Tweak Name Styling -->
                                 <TextBlock Text="{Binding Name}"
-                                           FontSize="14"
-                                           FontWeight="SemiBold"/>
+                                           FontSize="15"
+                                           FontWeight="Bold"
+                                           Foreground="#2E3440"/>
                             </GroupBox.Header>
 
                             <!-- Main Card Content with Two-Column Layout -->

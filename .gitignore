@@ -1,0 +1,7 @@
+# Escludi tutti gli .exe
+*.exe
+
+# Escludi directory di build comuni
+/bin/
+/obj/
+/publish/

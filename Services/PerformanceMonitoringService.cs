@@ -230,6 +230,7 @@ namespace ThreadPilot.Services
             _logger.LogInformation("Starting performance monitoring");
             _isMonitoring = true;
 
+            // PERFORMANCE OPTIMIZATION: Increased interval from 1s to 2s for better performance
             _monitoringTimer = new System.Threading.Timer(async _ =>
             {
                 try
@@ -241,7 +242,7 @@ namespace ThreadPilot.Services
                 {
                     _logger.LogError(ex, "Error during performance monitoring update");
                 }
-            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(1));
+            }, null, TimeSpan.Zero, TimeSpan.FromSeconds(2));
         }
 
         public async Task StopMonitoringAsync()

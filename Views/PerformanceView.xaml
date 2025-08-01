@@ -36,44 +36,56 @@
         </Style>
     </UserControl.Resources>
     
-    <Grid Background="#1E1E1E">
+    <Grid Background="#1E1E1E" Margin="10">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="*"/>
         </Grid.RowDefinitions>
-        
-        <!-- Header -->
-        <Border Grid.Row="0" Background="#252526" BorderBrush="#3F3F46" BorderThickness="0,0,0,1" Padding="16">
-            <Grid>
+
+        <!-- Standardized Header with Dark Theme -->
+        <GroupBox Grid.Row="0" Margin="0,0,0,10">
+            <GroupBox.Header>
+                <TextBlock Text="📊 Performance Dashboard" Foreground="#E1E1E6" FontWeight="Bold"/>
+            </GroupBox.Header>
+            <GroupBox.Style>
+                <Style TargetType="GroupBox">
+                    <Setter Property="BorderBrush" Value="#3F3F46"/>
+                    <Setter Property="BorderThickness" Value="1"/>
+                    <Setter Property="Background" Value="#252526"/>
+                    <Setter Property="Foreground" Value="#E1E1E6"/>
+                </Style>
+            </GroupBox.Style>
+            <Grid Margin="5">
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="Auto"/>
                 </Grid.ColumnDefinitions>
-                
+
                 <StackPanel Grid.Column="0" Orientation="Horizontal">
-                    <TextBlock Text="Performance Dashboard" FontSize="18" FontWeight="Bold" Foreground="#E1E1E6" VerticalAlignment="Center"/>
+                    <TextBlock Text="Real-time system performance monitoring and metrics"
+                               FontSize="12" Foreground="#A1A1AA" VerticalAlignment="Center"/>
                     <TextBlock Text="{Binding UptimeText}" FontSize="12" Foreground="#A1A1AA" VerticalAlignment="Center" Margin="16,0,0,0"/>
                 </StackPanel>
-                
+
                 <StackPanel Grid.Column="1" Orientation="Horizontal">
                     <Button Content="{Binding IsMonitoring, Converter={StaticResource BoolToStringConverter}, ConverterParameter='Stop Monitoring|Start Monitoring'}"
                             Command="{Binding ToggleMonitoringCommand}"
-                            Background="#0E639C" 
-                            Foreground="White" 
-                            BorderThickness="0" 
-                            Padding="12,6" 
+                            Background="#0E639C"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="12,6"
                             Margin="8,0"/>
-                    <Button Content="Clear History" 
+                    <Button Content="Clear History"
                             Command="{Binding ClearHistoryCommand}"
-                            Background="#DC3545" 
-                            Foreground="White" 
-                            BorderThickness="0" 
-                            Padding="12,6" 
+                            Background="#DC3545"
+                            Foreground="White"
+                            BorderThickness="0"
+                            Padding="12,6"
                             Margin="8,0"/>
                 </StackPanel>
             </Grid>
-        </Border>
+        </GroupBox>
         
         <!-- Metrics Overview -->
         <Grid Grid.Row="1" Margin="8">

@@ -13,7 +13,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ThreadPilot")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Release")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9c1ed06c25e4a95b1c153d3f1495979bb82068f6")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+9bab8ee8f93df62d4c36ca5e8314c9b2c9ec5062")]
 [assembly: System.Reflection.AssemblyProductAttribute("ThreadPilot")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ThreadPilot")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

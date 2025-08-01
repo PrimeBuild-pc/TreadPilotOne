@@ -49,5 +49,15 @@ namespace ThreadPilot.Services
         /// Checks if a specific process is still running
         /// </summary>
         Task<bool> IsProcessStillRunning(ProcessModel process);
+
+        /// <summary>
+        /// Sets the idle server state for a process (disables/enables idle functionality)
+        /// </summary>
+        Task<bool> SetIdleServerStateAsync(ProcessModel process, bool enableIdleServer);
+
+        /// <summary>
+        /// Sets registry-based priority enforcement for a process
+        /// </summary>
+        Task<bool> SetRegistryPriorityAsync(ProcessModel process, bool enable, ProcessPriorityClass priority);
     }
 }

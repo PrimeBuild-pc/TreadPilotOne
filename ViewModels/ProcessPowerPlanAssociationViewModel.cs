@@ -428,14 +428,18 @@ namespace ThreadPilot.ViewModels
 
         private void OnConfigurationChanged(object? sender, ConfigurationChangedEventArgs e)
         {
-            // Reload data when configuration changes
-            _ = Task.Run(LoadDataAsync);
+            // Reload data when configuration changes - marshal to UI thread to prevent cross-thread access exceptions
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await LoadDataAsync());
         }
 
         private void OnServiceStatusChanged(object? sender, ServiceStatusEventArgs e)
         {
-            ServiceStatus = e.Status;
-            IsServiceRunning = e.IsRunning;
+            // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                ServiceStatus = e.Status;
+                IsServiceRunning = e.IsRunning;
+            });
         }
 
         private bool IsValidExecutable(string filePath)
@@ -472,8 +476,12 @@ namespace ThreadPilot.ViewModels
 
         private void OnProcessPowerPlanChanged(object? sender, ProcessPowerPlanChangeEventArgs e)
         {
-            // Update status when power plan changes occur
-            SetStatus($"Power plan changed: {e.NewPowerPlan?.Name} for {e.Process.Name}");
+            // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+            System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+            {
+                // Update status when power plan changes occur
+                SetStatus($"Power plan changed: {e.NewPowerPlan?.Name} for {e.Process.Name}");
+            });
         }
 
         private void UpdateServiceStatus()

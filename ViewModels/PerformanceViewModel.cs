@@ -170,8 +170,13 @@ namespace ThreadPilot.ViewModels
             {
                 SetStatus("Loading historical data...");
                 var data = await _performanceService.GetHistoricalDataAsync(TimeSpan.FromHours(1));
-                HistoricalData = new ObservableCollection<SystemPerformanceMetrics>(data);
-                SetStatus($"Loaded {data.Count} historical data points");
+
+                // Marshal ObservableCollection assignment to UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    HistoricalData = new ObservableCollection<SystemPerformanceMetrics>(data);
+                    SetStatus($"Loaded {data.Count} historical data points");
+                });
             }
             catch (Exception ex)
             {
@@ -280,12 +285,51 @@ namespace ThreadPilot.ViewModels
                 var topCpu = await _performanceService.GetTopCpuProcessesAsync(10);
                 var topMemory = await _performanceService.GetTopMemoryProcessesAsync(10);
 
-                TopCpuProcesses = new ObservableCollection<ProcessPerformanceInfo>(topCpu);
-                TopMemoryProcesses = new ObservableCollection<ProcessPerformanceInfo>(topMemory);
+                // PERFORMANCE OPTIMIZATION: Update existing collections instead of creating new ones
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    UpdateObservableCollection(TopCpuProcesses, topCpu);
+                    UpdateObservableCollection(TopMemoryProcesses, topMemory);
+                });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "Error loading top processes");
+            }
+        }
+
+        /// <summary>
+        /// PERFORMANCE OPTIMIZATION: Updates an ObservableCollection efficiently by only modifying changed items
+        /// </summary>
+        private void UpdateObservableCollection<T>(ObservableCollection<T> collection, IEnumerable<T> newItems) where T : class
+        {
+            var newList = newItems.ToList();
+
+            // Remove items that are no longer in the new list
+            for (int i = collection.Count - 1; i >= 0; i--)
+            {
+                if (!newList.Contains(collection[i]))
+                {
+                    collection.RemoveAt(i);
+                }
+            }
+
+            // Add or update items
+            for (int i = 0; i < newList.Count; i++)
+            {
+                if (i < collection.Count)
+                {
+                    // Update existing item if different
+                    if (!collection[i].Equals(newList[i]))
+                    {
+                        collection[i] = newList[i];
+                    }
+                }
+                else
+                {
+                    // Add new item
+                    collection.Add(newList[i]);
+                }
             }
         }
 

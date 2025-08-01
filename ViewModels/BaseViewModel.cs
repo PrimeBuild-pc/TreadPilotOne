@@ -130,25 +130,41 @@ namespace ThreadPilot.ViewModels
             {
                 if (!string.IsNullOrEmpty(statusMessage))
                 {
-                    SetStatus(statusMessage);
+                    // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetStatus(statusMessage);
+                    });
                 }
 
                 var result = await operation();
 
                 if (!string.IsNullOrEmpty(successMessage))
                 {
-                    SetStatus(successMessage, false);
+                    // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        SetStatus(successMessage, false);
+                    });
                 }
                 else
                 {
-                    ClearStatus();
+                    // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                    {
+                        ClearStatus();
+                    });
                 }
 
                 return result;
             }
             catch (Exception ex)
             {
-                SetError($"Operation failed: {ex.Message}", ex);
+                // Marshal UI updates to the UI thread to prevent cross-thread access exceptions
+                await System.Windows.Application.Current.Dispatcher.InvokeAsync(() =>
+                {
+                    SetError($"Operation failed: {ex.Message}", ex);
+                });
                 return default;
             }
         }

@@ -44,8 +44,22 @@ namespace ThreadPilot.ViewModels
 
         private void SetupRefreshTimer()
         {
-            _refreshTimer = new System.Timers.Timer(5000); // 5 second refresh
-            _refreshTimer.Elapsed += async (s, e) => await RefreshPowerPlansCommand.ExecuteAsync(null);
+            _refreshTimer = new System.Timers.Timer(10000); // PERFORMANCE OPTIMIZATION: Increased to 10 second refresh - power plans change infrequently
+            _refreshTimer.Elapsed += async (s, e) =>
+            {
+                try
+                {
+                    // Marshal timer callback to UI thread to prevent cross-thread access exceptions
+                    await System.Windows.Application.Current.Dispatcher.InvokeAsync(async () =>
+                    {
+                        await RefreshPowerPlansCommand.ExecuteAsync(null);
+                    });
+                }
+                catch (Exception ex)
+                {
+                    System.Diagnostics.Debug.WriteLine($"Power plan refresh timer error: {ex.Message}");
+                }
+            };
             _refreshTimer.Start();
         }
 

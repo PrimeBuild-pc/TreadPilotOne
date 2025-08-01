@@ -90,9 +90,9 @@ namespace ThreadPilot.ViewModels
             Settings.PropertyChanged += OnSettingsPropertyChanged;
             PropertyChanged += OnViewModelPropertyChanged;
 
-            // Initialize data
-            _ = Task.Run(RefreshPowerPlansAsync);
-            _ = Task.Run(LoadKnownGamesAsync);
+            // Initialize data - marshal to UI thread to prevent cross-thread access exceptions
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await RefreshPowerPlansAsync());
+            _ = System.Windows.Application.Current.Dispatcher.InvokeAsync(async () => await LoadKnownGamesAsync());
 
             Logger.LogInformation("Settings ViewModel initialized");
         }

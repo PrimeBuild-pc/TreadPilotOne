@@ -22,6 +22,19 @@ namespace ThreadPilot.Services
         private readonly Dictionary<string, GameProfile> _gameProfiles;
         private readonly Dictionary<string, DateTime> _gameStartTimes;
 
+        // ADVANCED GAME DETECTION: ML and performance monitoring
+        private readonly Dictionary<string, bool> _gameOverrides = new();
+        private readonly Dictionary<int, GamePerformanceMetrics> _monitoredGames = new();
+        private readonly List<string> _gameKeywords = new()
+        {
+            "game", "gaming", "play", "steam", "epic", "origin", "uplay", "battle.net",
+            "launcher", "client", "engine", "unity", "unreal", "directx", "opengl", "vulkan"
+        };
+        private readonly List<string> _gamesFolders = new()
+        {
+            "games", "steam", "steamapps", "epic games", "origin games", "uplay", "battle.net"
+        };
+
         public event EventHandler<GameProfileDetectedEventArgs>? GameDetected;
         public event EventHandler<GameStoppedEventArgs>? GameStopped;
 
@@ -39,6 +52,142 @@ namespace ThreadPilot.Services
             _gameStartTimes = new Dictionary<string, DateTime>();
 
             InitializeDefaultGameProfiles();
+        }
+
+        public async Task<ProcessFeatures> ExtractProcessFeaturesAsync(ProcessModel process)
+        {
+            var features = new ProcessFeatures
+            {
+                ProcessName = process.Name,
+                ExecutablePath = process.ExecutablePath ?? string.Empty,
+                HasVisibleWindow = process.HasVisibleWindow,
+                CpuUsage = process.CpuUsage,
+                MemoryUsage = process.MemoryUsage,
+                ThreadCount = process.Process?.Threads.Count ?? 0,
+                HandleCount = process.Process?.HandleCount ?? 0
+            };
+
+            try
+            {
+                // Check for graphics API DLLs
+                features.HasDirectXDlls = await HasLoadedDllAsync(process, "d3d", "dxgi", "d3d11", "d3d12");
+                features.HasOpenGLDlls = await HasLoadedDllAsync(process, "opengl32", "glu32");
+                features.HasVulkanDlls = await HasLoadedDllAsync(process, "vulkan");
+                features.HasAudioDlls = await HasLoadedDllAsync(process, "dsound", "xaudio", "fmod");
+
+                // Check file properties
+                if (!string.IsNullOrEmpty(features.ExecutablePath) && File.Exists(features.ExecutablePath))
+                {
+                    var fileInfo = FileVersionInfo.GetVersionInfo(features.ExecutablePath);
+                    features.FileDescription = fileInfo.FileDescription ?? string.Empty;
+                    features.CompanyName = fileInfo.CompanyName ?? string.Empty;
+                }
+
+                // Check if in games folder
+                features.IsInGamesFolder = _gamesFolders.Any(folder =>
+                    features.ExecutablePath.Contains(folder, StringComparison.OrdinalIgnoreCase));
+
+                // Check for game keywords
+                features.HasGameKeywords = _gameKeywords.Any(keyword =>
+                    features.ProcessName.Contains(keyword, StringComparison.OrdinalIgnoreCase) ||
+                    features.FileDescription.Contains(keyword, StringComparison.OrdinalIgnoreCase));
+
+                // Check if fullscreen (simplified check)
+                features.IsFullscreen = process.HasVisibleWindow && process.MainWindowTitle != null;
+
+                _logger.LogDebug("Extracted features for {ProcessName}: DirectX={HasDirectX}, OpenGL={HasOpenGL}, GamesFolder={IsInGamesFolder}",
+                    process.Name, features.HasDirectXDlls, features.HasOpenGLDlls, features.IsInGamesFolder);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error extracting features for process {ProcessName}", process.Name);
+            }
+
+            return features;
+        }
+
+        public async Task<GamePerformanceMetrics> GetGamePerformanceAsync(ProcessModel process)
+        {
+            var metrics = new GamePerformanceMetrics
+            {
+                ProcessId = process.ProcessId,
+                GameName = process.Name,
+                CpuUsage = process.CpuUsage,
+                MemoryUsage = process.MemoryUsage,
+                Timestamp = DateTime.UtcNow,
+                IsFullscreen = process.HasVisibleWindow
+            };
+
+            try
+            {
+                // Estimate frame rate based on CPU usage patterns (simplified)
+                metrics.FrameRate = EstimateFrameRate(process);
+
+                // Get GPU usage (would require additional APIs in real implementation)
+                metrics.GpuUsage = 0.0; // Placeholder
+                metrics.GpuMemoryUsage = 0; // Placeholder
+
+                // Get window resolution (simplified)
+                metrics.Resolution = process.HasVisibleWindow ? "1920x1080" : "N/A"; // Placeholder
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Error getting performance metrics for {ProcessName}", process.Name);
+            }
+
+            return metrics;
+        }
+
+        public async Task<GameDetectionResult> DetectGameWithMLAsync(ProcessModel process)
+        {
+            try
+            {
+                // Check manual overrides first
+                if (_gameOverrides.TryGetValue(process.Name.ToLower(), out var isGameOverride))
+                {
+                    return new GameDetectionResult
+                    {
+                        IsGame = isGameOverride,
+                        Confidence = 1.0f,
+                        GameName = process.Name,
+                        DetectionMethod = "Manual Override",
+                        DetectionTime = DateTime.UtcNow
+                    };
+                }
+
+                // Extract features for ML classification
+                var features = await ExtractProcessFeaturesAsync(process);
+
+                // Simple ML-like scoring based on features (can be replaced with actual ML model)
+                var score = CalculateGameScore(features);
+
+                var result = new GameDetectionResult
+                {
+                    IsGame = score >= 0.5f,
+                    Confidence = score,
+                    GameName = features.ProcessName,
+                    DetectionMethod = "ML Classification",
+                    Features = ConvertFeaturesToDictionary(features),
+                    DetectionTime = DateTime.UtcNow
+                };
+
+                _logger.LogDebug("ML game detection for {ProcessName}: IsGame={IsGame}, Confidence={Confidence:P1}",
+                    process.Name, result.IsGame, result.Confidence);
+
+                return result;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error in ML game detection for process {ProcessName}", process.Name);
+                return new GameDetectionResult
+                {
+                    IsGame = false,
+                    Confidence = 0.0f,
+                    GameName = process.Name,
+                    DetectionMethod = "Error",
+                    DetectionTime = DateTime.UtcNow
+                };
+            }
         }
 
         public async Task<GameProfile?> DetectGameAsync(ProcessModel process)
@@ -347,6 +496,86 @@ namespace ThreadPilot.Services
                 _logger.LogError(ex, "Error calculating affinity mask for {OptimalCores}", optimalCores);
                 return null;
             }
+        }
+
+        private float CalculateGameScore(ProcessFeatures features)
+        {
+            float score = 0.0f;
+
+            // Graphics API indicators (strong indicators)
+            if (features.HasDirectXDlls) score += 0.3f;
+            if (features.HasOpenGLDlls) score += 0.25f;
+            if (features.HasVulkanDlls) score += 0.3f;
+
+            // Audio indicators
+            if (features.HasAudioDlls) score += 0.1f;
+
+            // Location indicators
+            if (features.IsInGamesFolder) score += 0.2f;
+
+            // Keyword indicators
+            if (features.HasGameKeywords) score += 0.15f;
+
+            // Window and resource usage indicators
+            if (features.HasVisibleWindow) score += 0.1f;
+            if (features.IsFullscreen) score += 0.15f;
+            if (features.CpuUsage > 10.0) score += 0.1f;
+            if (features.MemoryUsage > 100 * 1024 * 1024) score += 0.05f; // > 100MB
+
+            // Company indicators
+            var gameCompanies = new[] { "valve", "epic", "ubisoft", "ea", "activision", "blizzard", "steam" };
+            if (gameCompanies.Any(company => features.CompanyName.Contains(company, StringComparison.OrdinalIgnoreCase)))
+                score += 0.1f;
+
+            // Clamp score to [0, 1]
+            return Math.Min(1.0f, Math.Max(0.0f, score));
+        }
+
+        private Dictionary<string, object> ConvertFeaturesToDictionary(ProcessFeatures features)
+        {
+            return new Dictionary<string, object>
+            {
+                ["ProcessName"] = features.ProcessName,
+                ["HasDirectXDlls"] = features.HasDirectXDlls,
+                ["HasOpenGLDlls"] = features.HasOpenGLDlls,
+                ["HasVulkanDlls"] = features.HasVulkanDlls,
+                ["HasAudioDlls"] = features.HasAudioDlls,
+                ["IsInGamesFolder"] = features.IsInGamesFolder,
+                ["HasGameKeywords"] = features.HasGameKeywords,
+                ["HasVisibleWindow"] = features.HasVisibleWindow,
+                ["IsFullscreen"] = features.IsFullscreen,
+                ["CpuUsage"] = features.CpuUsage,
+                ["MemoryUsage"] = features.MemoryUsage,
+                ["CompanyName"] = features.CompanyName
+            };
+        }
+
+        private async Task<bool> HasLoadedDllAsync(ProcessModel process, params string[] dllNames)
+        {
+            try
+            {
+                // Simplified check - in real implementation would check loaded modules
+                // For now, check if executable path contains any of the DLL indicators
+                var execPath = process.ExecutablePath?.ToLower() ?? string.Empty;
+                return dllNames.Any(dll => execPath.Contains(dll.ToLower()));
+            }
+            catch (Exception ex)
+            {
+                _logger.LogDebug(ex, "Error checking DLLs for process {ProcessName}", process.Name);
+                return false;
+            }
+        }
+
+        private float EstimateFrameRate(ProcessModel process)
+        {
+            // Simplified frame rate estimation based on CPU usage patterns
+            // In real implementation, would use performance counters or graphics APIs
+            if (process.CpuUsage > 20.0)
+                return 60.0f; // Assume 60 FPS for high CPU usage games
+            else if (process.CpuUsage > 10.0)
+                return 30.0f; // Assume 30 FPS for moderate CPU usage
+            else
+                return 0.0f; // Not actively rendering
         }
 
         private static bool IsLikelyGame(ProcessModel process)

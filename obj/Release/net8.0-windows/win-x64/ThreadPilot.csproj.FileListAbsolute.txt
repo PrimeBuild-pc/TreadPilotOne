@@ -514,3 +514,5 @@ C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\win-x6
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\win-x64\Views\PerformanceView.g.cs
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\win-x64\Views\SystemTweaksView.g.cs
 C:\Users\FSOS\Documents\Projects\TreadPilotOne\obj\Release\net8.0-windows\win-x64\Views\PerformanceView.baml
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\win-x64\Microsoft.Extensions.Caching.Abstractions.dll
+C:\Users\FSOS\Documents\Projects\TreadPilotOne\bin\Release\net8.0-windows\win-x64\Microsoft.Extensions.Caching.Memory.dll
