@@ -1,5 +1,12 @@
 # ThreadPilot 🚀
 
+[![Windows](https://img.shields.io/badge/Windows-10%2F11-blue?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
+[![.NET](https://img.shields.io/badge/.NET-8.0-purple?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
+[![WPF](https://img.shields.io/badge/WPF-Windows%20Presentation%20Foundation-blue?logo=microsoft&logoColor=white)](https://docs.microsoft.com/en-us/dotnet/desktop/wpf/)
+[![License](https://img.shields.io/badge/License-MIT-green.svg)](LICENSE)
+[![Release](https://img.shields.io/badge/Release-Latest-brightgreen)](../../releases)
+[![Architecture](https://img.shields.io/badge/Architecture-x64-red?logo=windows&logoColor=white)](https://docs.microsoft.com/en-us/windows/win32/)
+
 **Professional Windows Process & Power Plan Manager**
 
 ThreadPilot is a comprehensive Windows application that provides advanced process management, intelligent power plan automation, and system optimization tools. Designed for power users, gamers, and system administrators who demand precise control over their system's performance and behavior.
@@ -56,6 +63,8 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 - **Privileges**: Administrator rights required for system modifications
 - **Memory**: 4 GB RAM minimum (8 GB recommended for large process lists)
 - **Storage**: 200 MB free space for installation and configuration files
+
+<img width="1253" height="703" alt="image" src="https://github.com/user-attachments/assets/a1e37a2e-0817-463d-9f1f-c4e4a8e16d72" />
 
 ## 📦 **Installation**
 
@@ -232,3 +241,7 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 **Made with ❤️ for the Windows power user community**
 
 *ThreadPilot - Take control of your system's performance*
+
+---
+
+**Made by PrimeBuild® - All rights reserved 2025**
