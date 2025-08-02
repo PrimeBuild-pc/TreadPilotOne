@@ -253,3 +253,6 @@ FodyWeavers.xsd
 
 # JetBrains Rider
 *.sln.iml
+
+# Continue.dev (AI coding assistant)
+.continue/
