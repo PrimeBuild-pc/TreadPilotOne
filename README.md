@@ -162,7 +162,7 @@ We welcome contributions from the community! Here's how to get started:
    dotnet build --configuration Debug
    ```
 
-### **Contribution Guidelines**
+### ✒️ **Contribution Guidelines**
 1. **Create** a feature branch: `git checkout -b feature/amazing-feature`
 2. **Follow** the existing code style and architecture patterns
 3. **Add tests** for new functionality where applicable
@@ -171,7 +171,7 @@ We welcome contributions from the community! Here's how to get started:
 6. **Push** to your branch: `git push origin feature/amazing-feature`
 7. **Open** a Pull Request with detailed description
 
-### **Code Standards**
+### 🗿 **Code Standards**
 - Follow C# coding conventions and MVVM patterns
 - Use dependency injection for service management
 - Implement proper error handling and logging
