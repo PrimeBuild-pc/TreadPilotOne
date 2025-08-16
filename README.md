@@ -12,6 +12,8 @@
 
 ThreadPilot is a comprehensive Windows application that provides advanced process management, intelligent power plan automation, and system optimization tools. Designed for power users, gamers, and system administrators who demand precise control over their system's performance and behavior.
 
+---
+
 ## ✨ Key Features
 
 ### 💻 **Advanced Process Management**
@@ -57,15 +59,9 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 - **Content Creators** - Users requiring precise resource allocation for demanding applications
 - **Overclockers & Enthusiasts** - Hardware enthusiasts fine-tuning system performance
 
-## 📋 **System Requirements**
-
-- **Operating System**: Windows 10 (1903+) or Windows 11 x64
-- **Architecture**: 64-bit (x64) systems only
-- **Privileges**: Administrator rights required for system modifications
-- **Memory**: 4 GB RAM minimum (8 GB recommended for large process lists)
-- **Storage**: 200 MB free space for installation and configuration files
-
 <img width="1253" height="703" alt="image" src="https://github.com/user-attachments/assets/a1e37a2e-0817-463d-9f1f-c4e4a8e16d72" />
+
+---
 
 ## 📦 **Installation**
 
@@ -91,66 +87,7 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
    dotnet run --configuration Release
    ```
 
-## 🚀 **Quick Start Guide**
-
-### **First Launch**
-1. **Run as Administrator** - Right-click `ThreadPilot.exe` → "Run as administrator"
-2. **Initial Setup** - Configure notification preferences and system tray options
-3. **CPU Detection** - ThreadPilot automatically detects your CPU topology and capabilities
-
-### **Process Management**
-1. **View Processes** - Browse active applications or all system processes
-2. **Select Process** - Click any process to view real-time information
-3. **Modify Settings**:
-   - **CPU Affinity**: Select specific cores (P-cores, E-cores, CCDs)
-   - **Priority**: Adjust process priority level
-   - **Power Plan**: Associate with specific power plans
-4. **Save Profiles** - Create reusable configurations for frequently used applications
-
-### **Power Plan Automation**
-1. **Create Associations** - Link processes to specific power plans
-2. **Set Conditions** - Configure automatic switching based on:
-   - System load and resource usage
-   - Time of day and user activity
-   - Battery status and power state
-   - Custom trigger combinations
-3. **Monitor Activity** - View real-time power plan changes in system tray
-
-### **Game Optimization**
-1. **Automatic Detection** - ThreadPilot identifies games with 95% accuracy
-2. **Game Boost Mode** - Enable automatic performance optimization
-3. **Manual Override** - Classify applications manually if needed
-4. **Performance Monitoring** - Track FPS and resource usage in real-time
-
-## 🎨 **User Interface**
-
-ThreadPilot features a modern, professional interface with:
-- **📊 Process Management** - Comprehensive process control and monitoring
-- **⚡ Power Plans** - Power plan management and automation
-- **🔗 Process Associations** - Automated process-power plan linking
-- **📋 Activity Logs** - Detailed logging and event tracking
-- **⚙️ Settings** - Extensive customization and preferences
-- **🔧 System Tweaks** - Advanced system optimization controls
-
-## 🔧 **Advanced Features**
-
-### **Virtualized Process Loading**
-- Handles 5000+ processes without UI lag
-- Progressive loading with background preloading
-- Memory-efficient caching with automatic cleanup
-- Real-time search across all process batches
-
-### **Conditional Profile System**
-- **10 Condition Types**: System load, time of day, power state, user activity, and more
-- **Logical Operators**: Complex AND/OR/NOT combinations
-- **Automatic Application**: Configurable delays and priority-based conflict resolution
-- **Import/Export**: JSON-based profile sharing and backup
-
-### **Smart Notification Management**
-- **Priority Queuing**: 4-level priority system with intelligent routing
-- **Throttling**: Per-category rate limiting (10-20 notifications/hour)
-- **Deduplication**: 5-minute window for identical notifications
-- **Do Not Disturb**: Time-based and manual modes with critical override
+---
 
 ## 🛠️ **Technical Architecture**
 
@@ -190,13 +127,15 @@ We welcome contributions from the community! Here's how to get started:
 1. **Fork** the repository on GitHub
 2. **Clone** your fork locally:
    ```bash
-   git clone https://github.com/yourusername/ThreadPilot.git
+   git clone https://github.com/PrimeBuild-pc/TreadPilot.git
    ```
 3. **Install** .NET 8.0 SDK or later
 4. **Build** the project:
    ```bash
    dotnet build --configuration Debug
    ```
+
+---
 
 ### **Contribution Guidelines**
 1. **Create** a feature branch: `git checkout -b feature/amazing-feature`
@@ -214,11 +153,7 @@ We welcome contributions from the community! Here's how to get started:
 - Maintain responsive UI with async/await patterns
 - Add XML documentation for public APIs
 
-## 🐛 **Bug Reports & Feature Requests**
-
-- **Bug Reports**: Use GitHub Issues with detailed reproduction steps
-- **Feature Requests**: Describe the use case and expected behavior
-- **Security Issues**: Contact maintainers privately for security vulnerabilities
+---
 
 ## 📄 **License**
 
@@ -233,7 +168,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 📞 **Support**
 
-- **Documentation**: Check the [Wiki](https://github.com/yourusername/ThreadPilot/wiki) for detailed guides
 - **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/ThreadPilot/issues)
 - **Discussions**: Join community discussions in [GitHub Discussions](https://github.com/yourusername/ThreadPilot/discussions)
 
@@ -244,7 +178,3 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 [![PayPal](https://img.shields.io/badge/Supporta%20su-PayPal-blue?logo=paypal)](https://paypal.me/PrimeBuildOfficial?country.x=IT&locale.x=it_IT)
 
 *ThreadPilot - Take control of your system's performance*
-
----
-
-**Made by PrimeBuild® - All rights reserved 2025**
