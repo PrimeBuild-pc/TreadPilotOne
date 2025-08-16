@@ -196,8 +196,6 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 - **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/PrimeBuild-pc/ThreadPilot/issues)
 - **Discussions**: Join community discussions in [GitHub Discussions](https://github.com/PrimeBuild-pc/ThreadPilot/discussions)
 
----
-
 **Made with ❤️ for the Windows power user community**
 
 [![PayPal](https://img.shields.io/badge/Supporta%20su-PayPal-blue?logo=paypal)](https://paypal.me/PrimeBuildOfficial?country.x=IT&locale.x=it_IT)
