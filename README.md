@@ -17,52 +17,69 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 ## ✨ Key Features
 
 <details>
-  <summary><b>📚 Feature Overview — click to expand</b></summary>
-
+  <summary><b>💻 Advanced Process Management</b></summary>
   <br>
 
-  ### 💻 **Advanced Process Management**
-  - **Virtualized Process Loading** - Handle 5000+ processes with smooth performance
-  - **Real-time Process Monitoring** - Live updates with intelligent refresh management
-  - **Advanced CPU Affinity Control** - Topology-aware core selection and assignment
-  - **Intel Hybrid Architecture Support** - P-core/E-core detection and optimization
-  - **AMD CCD Awareness** - Core Complex Die management for Ryzen processors
-  - **Process Priority Management** - Fine-grained priority control with profiles
-  - **Smart Search & Filtering** - Quick process discovery with active application focus
+- **Virtualized Process Loading** - Handle 5000+ processes with smooth performance
+- **Real-time Process Monitoring** - Live updates with intelligent refresh management
+- **Advanced CPU Affinity Control** - Topology-aware core selection and assignment
+- **Intel Hybrid Architecture Support** - P-core/E-core detection and optimization
+- **AMD CCD Awareness** - Core Complex Die management for Ryzen processors
+- **Process Priority Management** - Fine-grained priority control with profiles
+- **Smart Search & Filtering** - Quick process discovery with active application focus
+</details>
 
-  ### ⚡ **Intelligent Power Plan Automation**
-  - **Automatic Power Plan Switching** - Process-based power plan associations
-  - **Conditional Profile System** - Rule-based automation with complex triggers
-  - **Custom Power Plan Import** - Support for .pow configuration files
-  - **Real-time Power Monitoring** - Live power plan status and switching
-  - **Game Boost Mode** - Automatic performance optimization for detected games
+<details>
+  <summary><b>⚡ Intelligent Power Plan Automation</b></summary>
+  <br>
 
-  ### 🎮 **ML-Based Game Detection**
-  - **95% Accuracy Game Recognition** - Machine learning-powered game identification
-  - **Automatic Performance Optimization** - Smart resource allocation for gaming
-  - **Performance Metrics Tracking** - Real-time FPS estimation and resource monitoring
-  - **Manual Override System** - User-controlled game classification with persistence
+- **Automatic Power Plan Switching** - Process-based power plan associations
+- **Conditional Profile System** - Rule-based automation with complex triggers
+- **Custom Power Plan Import** - Support for .pow configuration files
+- **Real-time Power Monitoring** - Live power plan status and switching
+- **Game Boost Mode** - Automatic performance optimization for detected games
+</details>
 
-  ### 🔔 **Smart Notification System**
-  - **Intelligent Throttling** - Spam reduction with priority-based queuing
-  - **Do Not Disturb Mode** - Time-based and manual notification control
-  - **Category Management** - Granular notification preferences by type
-  - **Deduplication** - Automatic filtering of redundant notifications
+<details>
+  <summary><b>🎮 ML-Based Game Detection</b></summary>
+  <br>
 
-  ### 🔧 **System Tweaks & Optimization**
-  - **Core Parking Control** - CPU core parking management
-  - **C-States Management** - Power state optimization
-  - **System Service Tweaks** - SysMain, Prefetch, and power throttling control
-  - **HPET Configuration** - High Precision Event Timer optimization
-  - **Scheduling Optimization** - High priority scheduling category management
+- **95% Accuracy Game Recognition** - Machine learning-powered game identification
+- **Automatic Performance Optimization** - Smart resource allocation for gaming
+- **Performance Metrics Tracking** - Real-time FPS estimation and resource monitoring
+- **Manual Override System** - User-controlled game classification with persistence
+</details>
 
-  ## 🎯 **Target Audience**
-  - **Power Users** - Advanced Windows users seeking granular system control
-  - **Gamers** - Enthusiasts wanting optimized gaming performance
-  - **System Administrators** - IT professionals managing multiple systems
-  - **Content Creators** - Users requiring precise resource allocation for demanding applications
-  - **Overclockers & Enthusiasts** - Hardware enthusiasts fine-tuning system performance
+<details>
+  <summary><b>🔔 Smart Notification System</b></summary>
+  <br>
 
+- **Intelligent Throttling** - Spam reduction with priority-based queuing
+- **Do Not Disturb Mode** - Time-based and manual notification control
+- **Category Management** - Granular notification preferences by type
+- **Deduplication** - Automatic filtering of redundant notifications
+</details>
+
+<details>
+  <summary><b>🔧 System Tweaks & Optimization</b></summary>
+  <br>
+
+- **Core Parking Control** - CPU core parking management
+- **C-States Management** - Power state optimization
+- **System Service Tweaks** - SysMain, Prefetch, and power throttling control
+- **HPET Configuration** - High Precision Event Timer optimization
+- **Scheduling Optimization** - High priority scheduling category management
+</details>
+
+<details>
+  <summary><b>🎯 Target Audience</b></summary>
+  <br>
+
+- **Power Users** - Advanced Windows users seeking granular system control
+- **Gamers** - Enthusiasts wanting optimized gaming performance
+- **System Administrators** - IT professionals managing multiple systems
+- **Content Creators** - Users requiring precise resource allocation for demanding applications
+- **Overclockers & Enthusiasts** - Hardware enthusiasts fine-tuning system performance
 </details>
 
 <img width="1253" height="703" alt="image" src="https://github.com/user-attachments/assets/a1e37a2e-0817-463d-9f1f-c4e4a8e16d72" />
