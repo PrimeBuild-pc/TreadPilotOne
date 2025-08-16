@@ -1,5 +1,6 @@
-# ThreadPilot 🚀
+# ThreadPilot 🚀 <sup><kbd>PUBLIC BETA</kbd></sup>
 
+[![Status](https://img.shields.io/badge/Status-Public%20Beta-orange.svg)]()
 [![Windows](https://img.shields.io/badge/Windows-10%2F11-blue?logo=windows&logoColor=white)](https://www.microsoft.com/windows)
 [![.NET](https://img.shields.io/badge/.NET-8.0-purple?logo=dotnet&logoColor=white)](https://dotnet.microsoft.com/)
 [![WPF](https://img.shields.io/badge/WPF-Windows%20Presentation%20Foundation-blue?logo=microsoft&logoColor=white)](https://docs.microsoft.com/en-us/dotnet/desktop/wpf/)
