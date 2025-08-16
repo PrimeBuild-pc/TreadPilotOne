@@ -114,33 +114,37 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 
 ## 🛠️ **Technical Architecture**
 
-### **Core Technologies**
+<details>
+  <summary><b>Core Technologies</b></summary>
+  <br>
+
 - **.NET 8.0** - Latest long-term support framework
 - **WPF (Windows Presentation Foundation)** - Modern Windows UI framework
 - **MVVM Architecture** - Clean separation using CommunityToolkit.Mvvm
 - **Dependency Injection** - Microsoft.Extensions.DependencyInjection container
 - **Async/Await** - Responsive UI with non-blocking operations
+</details>
 
-### **Advanced Components**
+<details>
+  <summary><b>Advanced Components</b></summary>
+  <br>
+
 - **WMI Integration** - Windows Management Instrumentation for system access
 - **JSON Configuration** - Flexible profile and settings storage
 - **Real-time Monitoring** - Background services with intelligent throttling
 - **Memory Management** - Efficient caching and resource cleanup
 - **Error Handling** - Comprehensive logging with correlation IDs
+</details>
 
-### **Performance Optimizations**
+<details>
+  <summary><b>Performance Optimizations</b></summary>
+  <br>
+
 - **Virtualized UI** - Handle large datasets without performance impact
 - **Background Processing** - Non-blocking operations with progress tracking
 - **Intelligent Caching** - LRU-based caching with automatic cleanup
 - **Resource Monitoring** - Proactive memory and handle management
-
-## 📊 **Performance Benchmarks**
-
-- **Process List Virtualization**: 5000+ processes with <100ms response time
-- **Game Detection Accuracy**: 95% through feature-based ML scoring
-- **Profile Condition Evaluation**: Complex conditions evaluate within 2 seconds
-- **Notification Spam Reduction**: 80% reduction while maintaining critical alerts
-- **Memory Efficiency**: 70% reduction in memory usage for large process lists
+</details>
 
 ## 🤝 **Contributing**
 
