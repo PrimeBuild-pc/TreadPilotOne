@@ -162,8 +162,6 @@ We welcome contributions from the community! Here's how to get started:
    dotnet build --configuration Debug
    ```
 
----
-
 ### **Contribution Guidelines**
 1. **Create** a feature branch: `git checkout -b feature/amazing-feature`
 2. **Follow** the existing code style and architecture patterns
