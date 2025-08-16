@@ -16,48 +16,54 @@ ThreadPilot is a comprehensive Windows application that provides advanced proces
 
 ## ✨ Key Features
 
-### 💻 **Advanced Process Management**
-- **Virtualized Process Loading** - Handle 5000+ processes with smooth performance
-- **Real-time Process Monitoring** - Live updates with intelligent refresh management
-- **Advanced CPU Affinity Control** - Topology-aware core selection and assignment
-- **Intel Hybrid Architecture Support** - P-core/E-core detection and optimization
-- **AMD CCD Awareness** - Core Complex Die management for Ryzen processors
-- **Process Priority Management** - Fine-grained priority control with profiles
-- **Smart Search & Filtering** - Quick process discovery with active application focus
+<details>
+  <summary><b>📚 Feature Overview — click to expand</b></summary>
 
-### ⚡ **Intelligent Power Plan Automation**
-- **Automatic Power Plan Switching** - Process-based power plan associations
-- **Conditional Profile System** - Rule-based automation with complex triggers
-- **Custom Power Plan Import** - Support for .pow configuration files
-- **Real-time Power Monitoring** - Live power plan status and switching
-- **Game Boost Mode** - Automatic performance optimization for detected games
+  <br>
 
-### 🎮 **ML-Based Game Detection**
-- **95% Accuracy Game Recognition** - Machine learning-powered game identification
-- **Automatic Performance Optimization** - Smart resource allocation for gaming
-- **Performance Metrics Tracking** - Real-time FPS estimation and resource monitoring
-- **Manual Override System** - User-controlled game classification with persistence
+  ### 💻 **Advanced Process Management**
+  - **Virtualized Process Loading** - Handle 5000+ processes with smooth performance
+  - **Real-time Process Monitoring** - Live updates with intelligent refresh management
+  - **Advanced CPU Affinity Control** - Topology-aware core selection and assignment
+  - **Intel Hybrid Architecture Support** - P-core/E-core detection and optimization
+  - **AMD CCD Awareness** - Core Complex Die management for Ryzen processors
+  - **Process Priority Management** - Fine-grained priority control with profiles
+  - **Smart Search & Filtering** - Quick process discovery with active application focus
 
-### 🔔 **Smart Notification System**
-- **Intelligent Throttling** - Spam reduction with priority-based queuing
-- **Do Not Disturb Mode** - Time-based and manual notification control
-- **Category Management** - Granular notification preferences by type
-- **Deduplication** - Automatic filtering of redundant notifications
+  ### ⚡ **Intelligent Power Plan Automation**
+  - **Automatic Power Plan Switching** - Process-based power plan associations
+  - **Conditional Profile System** - Rule-based automation with complex triggers
+  - **Custom Power Plan Import** - Support for .pow configuration files
+  - **Real-time Power Monitoring** - Live power plan status and switching
+  - **Game Boost Mode** - Automatic performance optimization for detected games
 
-### 🔧 **System Tweaks & Optimization**
-- **Core Parking Control** - CPU core parking management
-- **C-States Management** - Power state optimization
-- **System Service Tweaks** - SysMain, Prefetch, and power throttling control
-- **HPET Configuration** - High Precision Event Timer optimization
-- **Scheduling Optimization** - High priority scheduling category management
+  ### 🎮 **ML-Based Game Detection**
+  - **95% Accuracy Game Recognition** - Machine learning-powered game identification
+  - **Automatic Performance Optimization** - Smart resource allocation for gaming
+  - **Performance Metrics Tracking** - Real-time FPS estimation and resource monitoring
+  - **Manual Override System** - User-controlled game classification with persistence
 
-## 🎯 **Target Audience**
+  ### 🔔 **Smart Notification System**
+  - **Intelligent Throttling** - Spam reduction with priority-based queuing
+  - **Do Not Disturb Mode** - Time-based and manual notification control
+  - **Category Management** - Granular notification preferences by type
+  - **Deduplication** - Automatic filtering of redundant notifications
 
-- **Power Users** - Advanced Windows users seeking granular system control
-- **Gamers** - Enthusiasts wanting optimized gaming performance
-- **System Administrators** - IT professionals managing multiple systems
-- **Content Creators** - Users requiring precise resource allocation for demanding applications
-- **Overclockers & Enthusiasts** - Hardware enthusiasts fine-tuning system performance
+  ### 🔧 **System Tweaks & Optimization**
+  - **Core Parking Control** - CPU core parking management
+  - **C-States Management** - Power state optimization
+  - **System Service Tweaks** - SysMain, Prefetch, and power throttling control
+  - **HPET Configuration** - High Precision Event Timer optimization
+  - **Scheduling Optimization** - High priority scheduling category management
+
+  ## 🎯 **Target Audience**
+  - **Power Users** - Advanced Windows users seeking granular system control
+  - **Gamers** - Enthusiasts wanting optimized gaming performance
+  - **System Administrators** - IT professionals managing multiple systems
+  - **Content Creators** - Users requiring precise resource allocation for demanding applications
+  - **Overclockers & Enthusiasts** - Hardware enthusiasts fine-tuning system performance
+
+</details>
 
 <img width="1253" height="703" alt="image" src="https://github.com/user-attachments/assets/a1e37a2e-0817-463d-9f1f-c4e4a8e16d72" />
 
@@ -168,8 +174,8 @@ This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) 
 
 ## 📞 **Support**
 
-- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/yourusername/ThreadPilot/issues)
-- **Discussions**: Join community discussions in [GitHub Discussions](https://github.com/yourusername/ThreadPilot/discussions)
+- **Issues**: Report bugs and request features via [GitHub Issues](https://github.com/PrimeBuild-pc/ThreadPilot/issues)
+- **Discussions**: Join community discussions in [GitHub Discussions](https://github.com/PrimeBuild-pc/ThreadPilot/discussions)
 
 ---
 
